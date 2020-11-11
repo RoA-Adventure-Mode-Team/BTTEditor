@@ -1,0 +1,56 @@
+﻿<Window x:Class="RivalsAdventureEditor.Windows.CreateArticleDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:data="clr-namespace:RivalsAdventureEditor.Data"
+        xmlns:local="clr-namespace:RivalsAdventureEditor.Windows"
+        mc:Ignorable="d"
+        WindowStyle="ToolWindow"
+        ResizeMode="NoResize"
+        Title="Create New Article" Height="125" Width="250">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Label Content="Article Type:"
+               VerticalAlignment="Center"
+               Margin="10 0 0 0"
+               Grid.Row="0"
+               Grid.Column="0"/>
+        <ComboBox SelectedIndex="0"
+                  VerticalAlignment="Center"
+                  HorizontalAlignment="Left"
+                  x:Name="articleType"
+                  Grid.Row="0"
+                  Grid.Column="1">
+            <ComboBoxItem Content="Terrain"
+                          Tag="{x:Static data:ArticleType.Terrain}"/>
+            <ComboBoxItem Content="Blastzone" 
+                          Tag="{x:Static data:ArticleType.Zone}"/>
+            <ComboBoxItem Content="Target"
+                          Tag="{x:Static data:ArticleType.Target}"/>
+        </ComboBox>
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Stretch"
+                    FlowDirection="RightToLeft"
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    Background="Gray">
+            <Button Content="Cancel"
+                    Margin="8 6 4 6"
+                    Padding="4 2 4 2"
+                    IsCancel="True"/>
+            <Button Content="Create"
+                    Margin="4 6 4 6"
+                    Padding="4 2 4 2"
+                    Click="OkButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

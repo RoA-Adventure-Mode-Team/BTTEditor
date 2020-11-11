@@ -1,0 +1,133 @@
+﻿<ScrollViewer x:Class="RivalsAdventureEditor.Panels.ProjectView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:RivalsAdventureEditor.Panels"
+             xmlns:cnv="clr-namespace:RivalsAdventureEditor.Converters"
+             xmlns:cmd="clr-namespace:RivalsAdventureEditor.Commands"
+             xmlns:data="clr-namespace:RivalsAdventureEditor.Data"
+             mc:Ignorable="d" 
+              HorizontalScrollBarVisibility="Disabled"
+            Loaded="OnLoaded"
+             x:Name="Self"
+             d:DesignHeight="450" d:DesignWidth="800">
+    <ScrollViewer.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.New"
+                        CanExecute="CanCreateRoom"
+                        Executed="CreateRoom"/>
+    </ScrollViewer.CommandBindings>
+    <ScrollViewer.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVisConverter"/>
+        <cnv:BoolToBoolConverter x:Key="BoolConverter" />
+        <Style TargetType="TextBox" x:Key="RenameTextBox">
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="IsInactiveSelectionHighlightEnabled" Value="False"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsReadOnly, RelativeSource={RelativeSource Self}}" Value="False">
+                    <Setter Property="BorderBrush" Value="Black"/>
+                    <Setter Property="IsInactiveSelectionHighlightEnabled" Value="True"/>
+                    <Setter Property="IsHitTestVisible" Value="True"/>
+                    <Setter Property="FontWeight" Value="Normal"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <DataTemplate x:Key="Room" DataType="{x:Type data:Room}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Rectangle Height="1" Width="10" 
+                           Stroke="Black" 
+                           VerticalAlignment="Bottom" 
+                           HorizontalAlignment="Left"
+                           Margin="0,0,0,5"/>
+                <TextBlock Text="{Binding Name}" 
+                           Grid.Column="1"/>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="Project" DataType="{x:Type data:Project}">
+            <StackPanel>
+                <ToggleButton IsChecked="{Binding Open}" 
+                              Background="Transparent" 
+                              BorderBrush="Transparent"
+                              Padding="1"
+                              HorizontalContentAlignment="Stretch"
+                              Focusable="False">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox FontFamily="Segoe MDL2 Assets"
+                                 VerticalAlignment="Center"
+                                 FontSize="8"
+                                 TextOptions.TextFormattingMode="Display"
+                                 Background="LightGray"
+                                 Padding="0,2,0,2"
+                                 IsReadOnly="True"
+                                 IsHitTestVisible="False"
+                                 BorderBrush="Gray">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Text" Value="&#xE710;"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Open}" Value="True">
+                                            <Setter Property="Text" Value="&#xE949;"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                        <TextBlock Text=" -"/>
+                        <TextBox Style="{StaticResource RenameTextBox}" 
+                                 Text="{Binding Name}"
+                                 IsReadOnly="{Binding Renaming, Converter={StaticResource BoolConverter}}"/>
+                        <TextBlock Text="*"
+                                   FontWeight="Bold"
+                                   Visibility="{Binding Unsaved, Converter={StaticResource BoolVisConverter}}"/>
+                    </StackPanel>
+                    <ToggleButton.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Add Room..."
+                                      InputGestureText="Ctrl+N"
+                                      Command="ApplicationCommands.New"
+                                      CommandParameter="{Binding}"/>
+                            <MenuItem Header="Import Rooms from Room Data"
+                                      Click="ImportRooms"/>
+                            <MenuItem Header="Rename"
+                                      CommandParameter="{Binding}"/>
+                            <MenuItem Header="Open Project"
+                                      Command="ApplicationCommands.Open"
+                                      CommandParameter="{Binding}"/>
+                            <MenuItem Header="Save Project"
+                                      Command="ApplicationCommands.Save"
+                                      CommandParameter="{Binding}"/>
+                            <MenuItem Header="Remove Project From List"
+                                      Command="ApplicationCommands.Delete"
+                                      CommandParameter="{Binding}"/>
+                        </ContextMenu>
+                    </ToggleButton.ContextMenu>
+                </ToggleButton>
+                <Grid Margin="4,0,0,0"
+                      Visibility="{Binding Open, Converter={StaticResource BoolVisConverter}}" >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Rectangle Width="1" 
+                               VerticalAlignment="Stretch"
+                               Stroke="Black"
+                               Margin="0,0,0,5"/>
+                    <ItemsControl ItemsSource="{Binding Rooms}" 
+                                  ItemTemplate="{StaticResource Room}"
+                                  Grid.Column="1"/>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+    </ScrollViewer.Resources>
+    <ItemsControl ItemsSource="{Binding Projects, Source={x:Static data:ApplicationSettings.Instance}}" 
+                  ItemTemplate="{StaticResource Project}"/>
+</ScrollViewer>

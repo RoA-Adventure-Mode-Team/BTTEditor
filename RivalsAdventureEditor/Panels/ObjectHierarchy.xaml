@@ -1,0 +1,98 @@
+﻿<ScrollViewer x:Class="RivalsAdventureEditor.Panels.ObjectHierarchy"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:RivalsAdventureEditor.Panels"
+             xmlns:cnv="clr-namespace:RivalsAdventureEditor.Converters"
+             xmlns:cmd="clr-namespace:RivalsAdventureEditor.Commands"
+             xmlns:data="clr-namespace:RivalsAdventureEditor.Data"
+             mc:Ignorable="d" 
+             HorizontalScrollBarVisibility="Disabled"
+            Loaded="OnLoaded"
+             x:Name="Self"
+             d:DesignHeight="450" d:DesignWidth="800">
+    <ScrollViewer.CommandBindings>
+    </ScrollViewer.CommandBindings>
+    <ScrollViewer.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVisConverter"/>
+        <cnv:BoolToBoolConverter x:Key="BoolConverter" />
+        <Style TargetType="TextBox" x:Key="RenameTextBox">
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="IsInactiveSelectionHighlightEnabled" Value="False"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsReadOnly, RelativeSource={RelativeSource Self}}" Value="False">
+                    <Setter Property="BorderBrush" Value="Black"/>
+                    <Setter Property="IsInactiveSelectionHighlightEnabled" Value="True"/>
+                    <Setter Property="IsHitTestVisible" Value="True"/>
+                    <Setter Property="FontWeight" Value="Normal"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <DataTemplate x:Key="Obj" DataType="{x:Type data:Obj}">
+            <TextBox Style="{StaticResource RenameTextBox}" 
+                    Text="{Binding Name}"
+                    IsReadOnly="{Binding Renaming, Converter={StaticResource BoolConverter}}"/>
+        </DataTemplate>
+        <DataTemplate x:Key="Room" DataType="{x:Type data:Room}">
+            <StackPanel>
+                <ToggleButton IsChecked="{Binding Open}" 
+                              Background="Transparent" 
+                              BorderBrush="Transparent"
+                              Padding="1"
+                              HorizontalContentAlignment="Stretch"
+                              Focusable="False">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox FontFamily="Segoe MDL2 Assets"
+                                 VerticalAlignment="Center"
+                                 FontSize="8"
+                                 TextOptions.TextFormattingMode="Display"
+                                 Background="LightGray"
+                                 Padding="0,2,0,2"
+                                 IsReadOnly="True"
+                                 IsHitTestVisible="False"
+                                 BorderBrush="Gray">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Text" Value="&#xE710;"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Open}" Value="True">
+                                            <Setter Property="Text" Value="&#xE949;"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                        <TextBlock Text=" -"/>
+                        <TextBlock Text="{Binding Name}"/>
+                    </StackPanel>
+                    <ToggleButton.ContextMenu>
+                        <ContextMenu>
+                        </ContextMenu>
+                    </ToggleButton.ContextMenu>
+                </ToggleButton>
+                <Grid Margin="4,0,0,0"
+                      Visibility="{Binding Open, Converter={StaticResource BoolVisConverter}}" >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Rectangle Width="1" 
+                               VerticalAlignment="Stretch"
+                               Stroke="Black"
+                               Margin="0,0,0,5"/>
+                    <ItemsControl ItemsSource="{Binding Objs}" 
+                                  ItemTemplate="{StaticResource Obj}"
+                                  Grid.Column="1"/>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+    </ScrollViewer.Resources>
+    <ItemsControl ItemsSource="{Binding Rooms, ElementName=Self}" 
+                  ItemTemplate="{StaticResource Room}"/>
+</ScrollViewer>

@@ -1,0 +1,236 @@
+﻿<ScrollViewer x:Class="RivalsAdventureEditor.Panels.ObjViewer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:RivalsAdventureEditor.Panels"
+             xmlns:cnv="clr-namespace:RivalsAdventureEditor.Converters"
+             xmlns:cmd="clr-namespace:RivalsAdventureEditor.Commands"
+             xmlns:data="clr-namespace:RivalsAdventureEditor.Data"
+             xmlns:tool="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d" 
+            HorizontalScrollBarVisibility="Disabled"
+            Loaded="OnLoaded"
+             x:Name="Self"
+             d:DesignHeight="450" d:DesignWidth="800">
+    <ScrollViewer.CommandBindings>
+    </ScrollViewer.CommandBindings>
+    <ScrollViewer.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVisConverter"/>
+        <cnv:BoolToBoolConverter x:Key="BoolConverter" />
+
+        <ControlTemplate TargetType="Button" x:Key="SpritePicker">
+            <Border CornerRadius="5"
+                    BorderBrush="Black"
+                    BorderThickness="1.5"
+                    x:Name="OuterBorder"
+                    TextBlock.Foreground="{TemplateBinding Foreground}">
+                <Border CornerRadius="2"
+                        BorderBrush="LightGray"
+                        BorderThickness="4 4 0 0"
+                        x:Name="InnerBorder"
+                        Background="White">
+                    <ContentPresenter Margin="0 -4 0 0" VerticalAlignment="Center" x:Name="ContentHost"/>
+                </Border>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver"
+                         Value="True">
+                    <Setter TargetName="InnerBorder"
+                            Property="Background"
+                            Value="LightCyan"/>
+                    <Setter TargetName="InnerBorder"
+                            Property="BorderBrush"
+                            Value="LightSkyBlue"/>
+                    <Setter TargetName="OuterBorder"
+                            Property="BorderBrush"
+                            Value="DarkBlue"/>
+                </Trigger>
+                <Trigger Property="IsPressed"
+                         Value="True">
+                    <Setter TargetName="InnerBorder"
+                            Property="Background"
+                            Value="PowderBlue"/>
+                    <Setter TargetName="InnerBorder"
+                            Property="BorderBrush"
+                            Value="DeepSkyBlue"/>
+                    <Setter TargetName="OuterBorder"
+                            Property="BorderBrush"
+                            Value="DarkBlue"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+        <DataTemplate x:Key="TargetSpeedPicker">
+            <tool:SingleUpDown ValueChanged="OnTargetSpeedsChanged"
+                               Value="{Binding Mode=OneWay, Delay=700}"
+                               Margin="0 0 0 5"
+                               GotKeyboardFocus="OnTargetFocused"/>
+        </DataTemplate>
+    </ScrollViewer.Resources>
+    <Grid x:Name="editorPanel">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.ColumnSpan="2"
+              x:Name="positionGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Label Content="X: "
+                    FontWeight="Bold"
+                    Grid.Row="0"
+                    Grid.Column="0"/>
+            <tool:IntegerUpDown ValueChanged="OnXChanged"
+                                Value="{Binding Article.X, ElementName=Self, Delay=700}"
+                               x:Name="xBox"
+                               Margin="0 2 2 2"
+                               Grid.Row="0"
+                               Grid.Column="1"/>
+            <Label Content="Y: "
+                    FontWeight="Bold"
+                    Grid.Row="0"
+                    Grid.Column="2"/>
+            <tool:IntegerUpDown ValueChanged="OnYChanged"
+                                Value="{Binding Article.Y, ElementName=Self, Delay=700}"
+                               x:Name="yBox"
+                               Margin="0 2 2 2"
+                               Grid.Row="0"
+                               Grid.Column="3"/>
+        </Grid>
+        <Label x:Name="spriteName"
+               Content="Sprite: "
+               FontWeight="Bold"
+               Grid.Row="1"
+               Grid.Column="0"/>
+        <Button Click="OnSpriteNameChanged" 
+                Template="{StaticResource SpritePicker}"
+                Content="{Binding Article.Sprite, ElementName=Self}"
+                x:Name="spriteNameBox"
+                HorizontalAlignment="Stretch"
+                Margin="0 2 2 2"
+                Grid.Row="1"
+                Grid.Column="1"/>
+        <!-- -->
+        <Label x:Name="destroySprite"
+               Content="Destroy Sprite: "
+               FontWeight="Bold"
+               Grid.Row="2"
+               Grid.Column="0"/>
+        <Button Click="OnDestroySpriteChanged" 
+                Template="{StaticResource SpritePicker}"
+                Content="{Binding Article.DestroySprite, ElementName=Self}"
+                 x:Name="destroySpriteBox"
+                 HorizontalAlignment="Stretch"
+                 Margin="0 2 2 2"
+                 Grid.Row="2"
+                 Grid.Column="1"/>
+        <!-- -->
+        <Label Content="Animation Speed: "
+                   FontWeight="Bold"
+                   x:Name="animationSpeed"
+                   Grid.Row="3"
+                   Grid.Column="0"/>
+        <tool:SingleUpDown ValueChanged="OnAnimationSpeedChanged"
+                            Value="{Binding Article.AnimationSpeed, ElementName=Self, Delay=700}"
+                           x:Name="animSpeedBox"
+                           Margin="0 2 2 2"
+                           Grid.Row="3"
+                           Grid.Column="1"/>
+        <!-- -->
+        <Label Content="Collision: "
+               FontWeight="Bold"
+               x:Name="collisionType"
+               Grid.Row="4"
+               Grid.Column="0"/>
+        <ComboBox x:Name="collisionTypeBox"
+                  SelectedIndex="{Binding Article.Type, ElementName=Self}"
+                  Margin="0 2 2 2"
+                  Grid.Row="4"
+                  Grid.Column="1"
+                  SelectionChanged="OnCollisionTypeChanged">
+            <ComboBoxItem Content="None"/>
+            <ComboBoxItem Content="Platform"/>
+            <ComboBoxItem Content="Solid"/>
+        </ComboBox>
+        <!-- -->
+        <Label x:Name="staticPanel"
+                   Content="Static: "
+                   FontWeight="Bold"
+                   Grid.Row="5"
+                   Grid.Column="0"/>
+        <CheckBox x:Name="staticBox"
+                  IsChecked="{Binding Article.Static, ElementName=Self}"
+                  Checked="OnStaticChanged"
+                  Unchecked="OnStaticChanged"
+                  Margin="0 6 2 2"
+                  Grid.Row="5"
+                  Grid.Column="1"/>
+        <Grid Grid.ColumnSpan="2"
+              Grid.Row="6"
+              x:Name="resizeGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Label Content="Width: "
+                    FontWeight="Bold"
+                    Grid.Row="0"
+                    Grid.Column="0"/>
+            <tool:IntegerUpDown ValueChanged="OnWidthChanged"
+                                Value="{Binding Article.TriggerWidth, ElementName=Self, Delay=700}"
+                               x:Name="widthBox"
+                               Margin="0 2 2 2"
+                               Grid.Row="0"
+                               Grid.Column="1"/>
+            <Label Content="Height: "
+                    FontWeight="Bold"
+                    Grid.Row="0"
+                    Grid.Column="2"/>
+            <tool:IntegerUpDown ValueChanged="OnHeightChanged"
+                                Value="{Binding Article.TriggerHeight, ElementName=Self, Delay=700}"
+                               x:Name="heightBox"
+                               Margin="0 2 2 2"
+                               Grid.Row="0"
+                               Grid.Column="3"/>
+        </Grid>
+        <Label x:Name="targetSpeeds"
+               Content="Target Speeds: "
+               FontWeight="Bold"
+               Grid.Row="7"
+               Grid.Column="0"/>
+        <ItemsControl ItemsSource="{Binding Article.TargetSpeedList, ElementName=Self}"
+                      ItemTemplate="{StaticResource TargetSpeedPicker}"
+                      x:Name="targetSpeedList"
+                      Margin="0 2 2 2"
+                      Grid.Row="7"
+                      Grid.Column="1"/>
+        <Label Content="Depth: "
+                   FontWeight="Bold"
+                   x:Name="depth"
+                   Grid.Row="8"
+                   Grid.Column="0"/>
+        <tool:IntegerUpDown Value="{Binding Article.Depth, ElementName=Self, Delay=700}"
+                           x:Name="depthBox"
+                           Margin="0 2 2 2"
+                           Grid.Row="8"
+                           Grid.Column="1"/>
+    </Grid>
+</ScrollViewer>

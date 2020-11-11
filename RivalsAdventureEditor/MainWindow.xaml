@@ -1,0 +1,139 @@
+﻿<Window x:Class="RivalsAdventureEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:dock="http://schemas.xceed.com/wpf/xaml/avalondock"
+        xmlns:local="clr-namespace:RivalsAdventureEditor"
+        xmlns:cmd="clr-namespace:RivalsAdventureEditor.Commands"
+        xmlns:panel="clr-namespace:RivalsAdventureEditor.Panels"
+        Loaded="OnLoad"
+        Closing="OnClosing"
+        mc:Ignorable="d"
+        AllowsTransparency="False"
+        Icon="{StaticResource ProjectIcon}"
+        Title="BTT Editor" Height="720" Width="1280">
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Open"
+                        Executed="OpenProject"/>
+        <CommandBinding Command="ApplicationCommands.Undo"
+                        CanExecute="CanUndo"
+                        Executed="UndoOp"/>
+        <CommandBinding Command="ApplicationCommands.Redo"
+                        CanExecute="CanRedo"
+                        Executed="RedoOp"/>
+        <CommandBinding Command="ApplicationCommands.Save"
+                        Executed="SaveProj"/>
+        <CommandBinding Command="ApplicationCommands.Delete"
+                        Executed="DeleteItem"/>
+        <CommandBinding Command="ApplicationCommands.Copy"
+                        Executed="CopyItem"/>
+        <CommandBinding Command="ApplicationCommands.Paste"
+                        Executed="PasteItem"/>
+        <CommandBinding Command="NavigationCommands.Refresh"
+                        Executed="Refresh"/>
+    </Window.CommandBindings>
+    <Window.InputBindings>
+        <KeyBinding Command="cmd:ProjectCommands.NewProject"
+                    Key="N"
+                    Modifiers="Ctrl+Shift"/>
+        <KeyBinding Command="cmd:ProjectCommands.AddPath"
+                    Key="P"/>
+        <KeyBinding Command="cmd:ProjectCommands.SetRespawnPoint"
+                    Key="R"
+                    Modifiers="Ctrl+Shift"/>
+        <KeyBinding Command="cmd:ProjectCommands.ExportRoomData"
+                    Key="F6"/>
+    </Window.InputBindings>
+    <DockPanel LastChildFill="True">
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="File">
+                <MenuItem Header="Create New Project"
+                          InputGestureText="Ctrl+Shift+N" 
+                          Command="cmd:ProjectCommands.NewProject"/>
+                <MenuItem Header="Open Project..." 
+                          InputGestureText="Ctrl+O" 
+                          Command="ApplicationCommands.Open"/>
+                <Separator/>
+                <MenuItem Header="Reload Sprites"
+                          InputGestureText="F5"
+                          Command="NavigationCommands.Refresh"/>
+            </MenuItem>
+            <MenuItem Header="Edit">
+                <MenuItem Header="Create New Article"
+                          Click="CreateArticle"/>
+                <MenuItem Header="Add Path Point"
+                          InputGestureText="P"
+                          Command="cmd:ProjectCommands.AddPath"
+                          IsVisibleChanged="RefreshMenuItem"/>
+                <MenuItem Header="Delete Selected Item"
+                          InputGestureText="Delete"
+                          Command="ApplicationCommands.Delete"/>
+                <MenuItem Header="Set Respawn Point"
+                          InputGestureText="Ctrl+Shift+R"
+                          Command="cmd:ProjectCommands.SetRespawnPoint"/>
+                <Separator/>
+                <MenuItem Header="Export Room Data"
+                          Click="ExportRoomData"
+                          InputGestureText="F6"/>
+                <MenuItem Header="Generate Room Data"
+                          Click="GenerateRoomData"/>
+            </MenuItem>
+            <MenuItem Header="Window">
+                <MenuItem Header="Reset Window Layout"
+                          Click="ResetLayout"/>
+                <!--<MenuItem Header="Fuckin crash the editor"
+                          Click="TestCrashDialog"/>-->
+                <Separator/>
+                <MenuItem Header="Projects"
+                          Loaded="CheckWindowOpen"
+                          Click="ToggleWindowOpen"
+                          Tag="Projects"/>
+                <MenuItem Header="Objects"
+                          Loaded="CheckWindowOpen"
+                          Click="ToggleWindowOpen"
+                          Tag="Hierarchy"/>
+                <MenuItem Header="Room Editor"
+                          Loaded="CheckWindowOpen"
+                          Click="ToggleWindowOpen"
+                          Tag="RoomEditor"/>
+                <MenuItem Header="Properties"
+                          Loaded="CheckWindowOpen"
+                          Click="ToggleWindowOpen"
+                          Tag="Properties"/>
+            </MenuItem>
+        </Menu>
+        <dock:DockingManager DockPanel.Dock="Bottom" x:Name="dockingManager">
+            <dock:LayoutRoot>
+                <dock:LayoutPanel Orientation="Horizontal">
+                    <dock:LayoutAnchorablePane DockWidth="200">
+                        <dock:LayoutAnchorable ContentId="Projects" 
+                                               Title="Projects"
+                                               CanClose="False">
+                            <panel:ProjectView/>
+                        </dock:LayoutAnchorable>
+                        <dock:LayoutAnchorable ContentId="Hierarchy" 
+                                                   Title="Objects"
+                                               CanClose="False">
+                            <panel:ObjectHierarchy/>
+                        </dock:LayoutAnchorable>
+                    </dock:LayoutAnchorablePane>
+                    <dock:LayoutAnchorablePane x:Name="RoomView">
+                        <dock:LayoutAnchorable ContentId="RoomEditor" 
+                                               Title="Room Editor"
+                                               CanClose="False">
+                            <panel:RoomEditor/>
+                        </dock:LayoutAnchorable>
+                    </dock:LayoutAnchorablePane>
+                    <dock:LayoutAnchorablePane DockWidth="300">
+                        <dock:LayoutAnchorable ContentId="Properties" 
+                                               Title="Properties"
+                                               CanClose="False">
+                            <panel:ObjViewer/>
+                        </dock:LayoutAnchorable>
+                    </dock:LayoutAnchorablePane>
+                </dock:LayoutPanel>
+            </dock:LayoutRoot>
+        </dock:DockingManager>
+    </DockPanel>
+</Window>
