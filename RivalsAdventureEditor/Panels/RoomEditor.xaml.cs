@@ -313,7 +313,8 @@ namespace RivalsAdventureEditor.Panels
                             PushSprite(new DX_Article { Translate = new Point(offset.X - arrowOffset.X / zoomLevel, offset.Y - arrowOffset.Y / zoomLevel), Scale = new Point(1 / zoomLevel, 1 / zoomLevel), Depth = -15, name = "roaam_arrows", Color = System.Drawing.Color.White.ToArgb() });
                         }
                     }
-                    PushSprite(new DX_Article { Translate = ApplicationSettings.Instance.ActiveProject.RespawnPoint - (Vector)Instance.LoadedImages["roaam_respawn"].offset, Depth = 5, name = "roaam_respawn", Scale = new Point(1, 1), Color = System.Drawing.Color.White.ToArgb() });
+                    if(ApplicationSettings.Instance.ActiveProject != null)
+                        PushSprite(new DX_Article { Translate = ApplicationSettings.Instance.ActiveProject.RespawnPoint - (Vector)Instance.LoadedImages["roaam_respawn"].offset, Depth = 5, name = "roaam_respawn", Scale = new Point(1, 1), Color = System.Drawing.Color.White.ToArgb() });
 
                     HRESULT.Check(Render());
                     d3dimg.AddDirtyRect(new Int32Rect(0, 0, d3dimg.PixelWidth, d3dimg.PixelHeight));
