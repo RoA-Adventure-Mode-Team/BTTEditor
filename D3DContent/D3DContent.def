@@ -1,0 +1,18 @@
+LIBRARY "D3DContent"
+
+EXPORTS
+
+SetSize
+SetAlpha
+SetNumDesiredSamples
+SetAdapter
+
+RegisterTexture
+StartDraw
+PushSprite
+PushLine
+SetCameraTransform
+
+GetBackBufferNoRef
+Render
+Destroy
