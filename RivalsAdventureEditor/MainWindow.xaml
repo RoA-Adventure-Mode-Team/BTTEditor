@@ -61,7 +61,7 @@
             </MenuItem>
             <MenuItem Header="Edit">
                 <MenuItem Header="Create New Article"
-                          Click="CreateArticle"/>
+                          Command="cmd:ProjectCommands.CreateArticle"/>
                 <MenuItem Header="Add Path Point"
                           InputGestureText="P"
                           Command="cmd:ProjectCommands.AddPath"
@@ -74,10 +74,10 @@
                           Command="cmd:ProjectCommands.SetRespawnPoint"/>
                 <Separator/>
                 <MenuItem Header="Export Room Data"
-                          Click="ExportRoomData"
+                          Command="cmd:ProjectCommands.ExportRoomData"
                           InputGestureText="F6"/>
                 <MenuItem Header="Generate Room Data"
-                          Click="GenerateRoomData"/>
+                          Command="cmd:ProjectCommands.GenerateRoomData"/>
             </MenuItem>
             <MenuItem Header="Window">
                 <MenuItem Header="Reset Window Layout"

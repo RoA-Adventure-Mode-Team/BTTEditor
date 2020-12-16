@@ -46,7 +46,7 @@ namespace RivalsAdventureEditor
 
         private void CanUndo(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = ApplicationSettings.Instance.ActiveProject.UndoStack.Any();
+            e.CanExecute = ApplicationSettings.Instance.ActiveProject?.UndoStack.Any() == true;
         }
 
         private void UndoOp(object sender, ExecutedRoutedEventArgs e)
@@ -56,7 +56,7 @@ namespace RivalsAdventureEditor
 
         private void CanRedo(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = ApplicationSettings.Instance.ActiveProject.RedoStack.Any();
+            e.CanExecute = ApplicationSettings.Instance.ActiveProject?.RedoStack.Any() == true;
         }
 
         private void RedoOp(object sender, ExecutedRoutedEventArgs e)
@@ -117,32 +117,12 @@ namespace RivalsAdventureEditor
             serializer.Serialize(settingsPath);
         }
 
-        private void CreateArticle(object sender, RoutedEventArgs e)
-        {
-            var dlg = new CreateArticleDialog();
-            dlg.Owner = this;
-            dlg.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            dlg.ShowDialog();
-        }
-
         private void RefreshMenuItem(object sender, DependencyPropertyChangedEventArgs e)
         {
             if(sender is MenuItem item && item.Command != null)
             {
-                (item.Command as AddPathCommand).RaiseCanExecuteChanged();
+                (item.Command as AddPathCommand).UpdateCanExecute();
             }
-        }
-
-        private void ExportRoomData(object sender, RoutedEventArgs e)
-        {
-            var cmd = new ExportRoomDataCommand();
-            cmd.Execute(null);
-        }
-
-        private void GenerateRoomData(object sender, RoutedEventArgs e)
-        {
-            var dlg = new ExportRoomDataDialogue() { Project = ApplicationSettings.Instance.ActiveProject };
-            dlg.ShowDialog();
         }
 
         private void CopyItem(object sender, ExecutedRoutedEventArgs e)

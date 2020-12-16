@@ -11,17 +11,17 @@ using System.Windows.Input;
 
 namespace RivalsAdventureEditor.Commands
 {
-    class ExportRoomDataCommand : ICommand
+    class ExportRoomDataCommand : CommandBase
     {
-        public event EventHandler CanExecuteChanged;
-
-        public bool CanExecute(object parameter)
+        public override bool CanExecute(object parameter)
         {
-            return true;
+            return ApplicationSettings.Instance.ActiveProject != null;
         }
 
-        public void Execute(object parameter)
+        public override void Execute(object parameter)
         {
+            if (ApplicationSettings.Instance.ActiveProject == null)
+                return;
             Project proj = null;
             if (parameter == null && ApplicationSettings.Instance.ActiveProject != null)
             {

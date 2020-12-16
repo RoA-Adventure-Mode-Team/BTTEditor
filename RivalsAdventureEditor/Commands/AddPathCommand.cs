@@ -10,26 +10,19 @@ using System.Windows.Input;
 
 namespace RivalsAdventureEditor.Commands
 {
-    public class AddPathCommand : ICommand
-    {
-        public event EventHandler CanExecuteChanged;
-
-        public bool CanExecute(object parameter)
+    public class AddPathCommand : CommandBase
+    { 
+        public override bool CanExecute(object parameter)
         {
             return RoomEditor.Instance.SelectedObj as Target != null;
         }
 
-        public void Execute(object parameter)
+        public override void Execute(object parameter)
         {
             if (!(RoomEditor.Instance.SelectedObj is Target target))
                 return;
             var proc = new AddPathProcedure(ApplicationSettings.Instance.ActiveProject, target);
             RoomEditor.Instance.SetActiveProcedure(proc);
-        }
-
-        public void RaiseCanExecuteChanged()
-        {
-            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }

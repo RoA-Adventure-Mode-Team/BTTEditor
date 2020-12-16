@@ -10,16 +10,14 @@ using RivalsAdventureEditor.Panels;
 
 namespace RivalsAdventureEditor.Commands
 {
-    class CreateProjectCommand : ICommand
+    class CreateProjectCommand : CommandBase
     {
-        public event EventHandler CanExecuteChanged;
-
-        public bool CanExecute(object parameter)
+        public override bool CanExecute(object parameter)
         {
             return true;
         }
 
-        public void Execute(object parameter)
+        public override void Execute(object parameter)
         {
             var dialog = new SaveFileDialog();
             dialog.Filter = "Rivals Adventure Mode Projects | *.aprj|Rivals Break The Targets Stage | *.btts";
