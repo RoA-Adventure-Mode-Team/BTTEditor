@@ -496,37 +496,23 @@ void CRendererManager::SetCameraTransform(D3DXMATRIX mat)
   m_pCurrentRenderer->SetTrans(mat);
 }
 
-void CRendererManager::StartDraw()
+
+void CRendererManager::PushArticles(Article* articles, int count)
 {
-  m_pCurrentRenderer->GetSprite()->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_DEPTH_FRONTTOBACK);
+  m_pCurrentRenderer->SetArticles(articles, count);
 }
 
-void CRendererManager::DrawArticle(Article art)
+void CRendererManager::PushLines(Line* lines, int count)
 {
-  auto itr = m_textureAtlas.find(art.sprite);
-  if (itr == m_textureAtlas.end())
-    return;
-  int frames = itr->second.frames;
-  LPDIRECT3DTEXTURE9 tex = itr->second.tex;
-  RECT bounds;
-  bounds.top = 0;
-  bounds.left = 0;
-  bounds.right = itr->second.width / itr->second.frames;
-  bounds.bottom = itr->second.height;
-  D3DXMATRIX transmat, scalemat, transform;
-  D3DXMatrixTranslation(&transmat, (float)art.translate.x, (float)art.translate.y, (art.depth + 15) / 30.0f);
-  D3DXMatrixScaling(&scalemat, art.scale.x, art.scale.y, 1);
-  transform = scalemat * transmat;
-  m_pCurrentRenderer->GetSprite()->SetTransform(&transform);
-  m_pCurrentRenderer->GetSprite()->Draw(tex, &bounds, NULL, NULL, art.color);
+  m_pCurrentRenderer->SetLines(lines, count);
 }
 
-void CRendererManager::DrawLine(Vector2 start, Vector2 end, int color, float width)
+void CRendererManager::PushTilemaps(Tilemap* tilemaps, int count)
 {
-  m_pCurrentRenderer->PushLine(D3DXVECTOR2(start.x, start.y), D3DXVECTOR2(end.x, end.y), width, color);
+  m_pCurrentRenderer->SetTilemaps(tilemaps, count);
 }
 
-HRESULT CRendererManager::RegisterTexture(const LPSTR key, const LPWSTR fname, int frames)
+HRESULT CRendererManager::RegisterTexture(const LPSTR key, const LPWSTR fname, int frames, TextureData** texture)
 {
   LPDIRECT3DTEXTURE9 tex;
   D3DXIMAGE_INFO info;
@@ -546,15 +532,20 @@ HRESULT CRendererManager::RegisterTexture(const LPSTR key, const LPWSTR fname, i
     NULL,
     &tex
   );
-  TextureData data;
-  data.frames = frames;
-  data.tex = tex;
-  data.width = info.Width;
-  data.height = info.Height;
+  TextureData* data = new TextureData();
+  data->frames = frames;
+  data->tex = tex;
+  data->width = info.Width;
+  data->height = info.Height;
   if (m_textureAtlas.find(key) == m_textureAtlas.end())
-    m_textureAtlas.insert(std::pair<std::string, TextureData>(key, data));
+    m_textureAtlas.insert(std::pair<std::string, TextureData *>(key, data));
   else
+  {
+    delete  m_textureAtlas[key];
     m_textureAtlas[key] = data;
+  }
+  (*texture) = data;
+
   return S_OK;
 }
 
@@ -570,6 +561,5 @@ HRESULT CRendererManager::RegisterTexture(const LPSTR key, const LPWSTR fname, i
 HRESULT
 CRendererManager::Render()
 {
-
   return m_pCurrentRenderer ? m_pCurrentRenderer->Render() : S_OK;
 }

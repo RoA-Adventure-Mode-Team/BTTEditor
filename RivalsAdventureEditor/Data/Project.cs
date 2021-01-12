@@ -43,6 +43,8 @@ namespace RivalsAdventureEditor.Data
             }
         }
 
+        public Dictionary<string, Tileset> Tilesets { get; } = new Dictionary<string, Tileset>();
+
         public Point RespawnPoint { get; set; }
 
         #region Open
@@ -215,12 +217,12 @@ namespace RivalsAdventureEditor.Data
             {
                 var room = Rooms[i];
                 sb.Append($"room_add({i + 1}, [\n");
-                Dictionary<Tuple<int, int>, List<Obj>> cells = new Dictionary<Tuple<int, int>, List<Obj>>();
+                Dictionary<Tuple<int, int>, List<Article>> cells = new Dictionary<Tuple<int, int>, List<Article>>();
                 foreach (var obj in room.Objs)
                 {
                     var key = new Tuple<int, int>(obj.CellX, obj.CellY);
                     if (!cells.ContainsKey(key))
-                        cells.Add(key, new List<Obj>());
+                        cells.Add(key, new List<Article>());
                     cells[key].Add(obj);
                 }
                 for (int j = 0; j < cells.Count; j++)
@@ -232,8 +234,8 @@ namespace RivalsAdventureEditor.Data
                     for (int n = 0; n < cell.Value.Count; n++)
                     {
                         var obj = cell.Value[n];
-                        sb.Append($"        [{(int)obj.Article}, {obj.X}, {obj.Y}, {obj.Type}, {obj.Depth}, [");
-                        switch (obj.Article)
+                        sb.Append($"        [{(int)obj.ArticleNum}, {obj.X}, {obj.Y}, {obj.Type}, {obj.Depth}, [");
+                        switch (obj.ArticleNum)
                         {
                             case ArticleType.Terrain:
                                 var terrain = obj as Terrain;

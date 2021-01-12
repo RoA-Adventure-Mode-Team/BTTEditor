@@ -25,7 +25,8 @@ namespace RivalsAdventureEditor.Data
         CameraController = 7,
         RoomTransition = 8,
         Checkpoint = 9,
-        Target = 10
+        Target = 10,
+        Tilemap = 30
     }
     public enum Shape
     {
@@ -35,20 +36,24 @@ namespace RivalsAdventureEditor.Data
     }
 
     [JsonObject()]
-    public class Obj : INotifyPropertyChanged
+    public class Article : INotifyPropertyChanged
     {
         public string Name { get; set; }
-        public ArticleType Article { get; set; }
+        [JsonProperty("Article")]
+        public ArticleType ArticleNum { get; set; }
         public float X { get; set; }
         public float Y { get; set; }
         public int Type { get; set; }
         public int Depth { get; set; }
+        [JsonIgnore]
         public object[] Args { get; set; } = new object[8];
+        [JsonIgnore]
         public List<object> ExtraArgs { get; } = new List<object>();
         public int CellX { get; set; }
         public int CellY { get; set; }
         public virtual string Sprite { get; set; } = "";
 
+        [JsonIgnore]
         public System.Windows.Point RealPoint
         {
             get { return new System.Windows.Point(X * ROAAM_CONST.GRID_SIZE - CellX * ROAAM_CONST.CELL_WIDTH, Y * ROAAM_CONST.GRID_SIZE + CellY * ROAAM_CONST.CELL_HEIGHT); }

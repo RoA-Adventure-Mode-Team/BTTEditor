@@ -16,7 +16,7 @@ namespace RivalsAdventureEditor.Operations
         public float NewSpeed { get; set; }
         int SelectedIndex { get; set; }
 
-        public override string Parameter => $"{Obj.Article.ToString()}({Obj.Name}), Point {SelectedIndex}, New Speed: {NewSpeed}";
+        public override string Parameter => $"{Obj.ArticleNum.ToString()}({Obj.Name}), Point {SelectedIndex}, New Speed: {NewSpeed}";
 
         public ModifyTargetSpeedOperation(Project project, Target obj, int selectedIndex, float speed) : base(project)
         {

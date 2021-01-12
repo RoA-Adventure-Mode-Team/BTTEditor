@@ -83,7 +83,7 @@ namespace RivalsAdventureEditor.Windows
                     for(int k = 0; k < objs_array.Count; k++)
                     {
                         RoomObj obj_data = (RoomObj)objs_array[k];
-                        Obj obj;
+                        Article obj;
                         switch((ArticleType)obj_data[0])
                         {
                             case ArticleType.Terrain:
@@ -96,11 +96,11 @@ namespace RivalsAdventureEditor.Windows
                                 obj = new Target();
                                 break;
                             default:
-                                obj = new Obj();
+                                obj = new Article();
                                 break;
                         }
-                        obj.Article = (ArticleType)obj_data[0];
-                        obj.Name = string.IsNullOrEmpty(obj_data.name) ? obj.Article.ToString() : obj_data.name;
+                        obj.ArticleNum = (ArticleType)obj_data[0];
+                        obj.Name = string.IsNullOrEmpty(obj_data.name) ? obj.ArticleNum.ToString() : obj_data.name;
                         if (obj_data[1] is float)
                             obj.X = (float)obj_data[1];
                         else

@@ -11,13 +11,14 @@
 
 #include "stdafx.h"
 
+
 //+-----------------------------------------------------------------------------
 //
 //  Member:
 //      CRenderer ctor
 //
 //------------------------------------------------------------------------------
-CRenderer::CRenderer() : m_pd3dDevice(NULL), m_pd3dDeviceEx(NULL), m_pd3dRTS(NULL)
+CRenderer::CRenderer() : m_pd3dDevice(NULL), m_pd3dDeviceEx(NULL), m_pd3dRTS(NULL), m_tilemapTexture(NULL)
 {
 }
 
@@ -112,8 +113,8 @@ CRenderer::Init(IDirect3D9* pD3D, IDirect3D9Ex* pD3DEx, HWND hwnd, UINT uAdapter
   ZeroMemory(&d3dpp, sizeof(d3dpp));
   d3dpp.Windowed = TRUE;
   d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
-  d3dpp.BackBufferHeight = 1;
-  d3dpp.BackBufferWidth = 1;
+  d3dpp.BackBufferHeight = 1080;
+  d3dpp.BackBufferWidth = 720;
   d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
 
   D3DCAPS9 caps;
@@ -130,7 +131,7 @@ CRenderer::Init(IDirect3D9* pD3D, IDirect3D9Ex* pD3DEx, HWND hwnd, UINT uAdapter
 
   if (pD3DEx)
   {
-    IDirect3DDevice9Ex* pd3dDevice = NULL;
+    ID3D11DeviceEx* pd3dDevice = NULL;
     IFC(pD3DEx->CreateDeviceEx(
       uAdapter,
       D3DDEVTYPE_HAL,
@@ -141,7 +142,9 @@ CRenderer::Init(IDirect3D9* pD3D, IDirect3D9Ex* pD3DEx, HWND hwnd, UINT uAdapter
       &m_pd3dDeviceEx
     ));
 
-    IFC(m_pd3dDeviceEx->QueryInterface(__uuidof(IDirect3DDevice9), reinterpret_cast<void**>(&m_pd3dDevice)));
+    IFC(m_pd3dDeviceEx->QueryInterface(__uuidof(ID3D11Device), reinterpret_cast<void**>(&m_pd3dDevice)));
+
+    InitTexture(128, 128);
   }
   else
   {
@@ -159,4 +162,15 @@ CRenderer::Init(IDirect3D9* pD3D, IDirect3D9Ex* pD3DEx, HWND hwnd, UINT uAdapter
 
 Cleanup:
   return hr;
+}
+
+void CRenderer::InitTexture(int width, int height)
+{
+  if(m_tilemapTexture == NULL)
+    D3DXCreateTexture(m_pd3dDevice, width, height, 0, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &m_tilemapTexture);
+}
+
+ID3D11Texture2D* CRenderer::GetTilemapTexture()
+{
+  return m_tilemapTexture;
 }

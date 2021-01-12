@@ -18,7 +18,7 @@ namespace RivalsAdventureEditor.Data
         [JsonIgnore]
         public string Filename { get; set; }
         [JsonIgnore]
-        public ObservableCollection<Obj> Objs { get; set; } = new ObservableCollection<Obj>();
+        public ObservableCollection<Article> Objs { get; set; } = new ObservableCollection<Article>();
         public bool IsActive
         {
             get { return _isActive; }
@@ -61,7 +61,7 @@ namespace RivalsAdventureEditor.Data
             serializer.Populate(json.CreateReader(), room);
             foreach(JObject obj in json.GetValue("Objs") as JArray)
             {
-                Obj article;
+                Article article;
                 ArticleType type = (ArticleType)obj.Value<int>("Article");
                 switch(type)
                 {
@@ -74,8 +74,11 @@ namespace RivalsAdventureEditor.Data
                     case ArticleType.Target:
                         article = new Target();
                         break;
+                    case ArticleType.Tilemap:
+                        article = new Tilemap();
+                        break;
                     default:
-                        article = new Obj();
+                        article = new Article();
                         break;
                 }
                 serializer.Populate(obj.CreateReader(), article);

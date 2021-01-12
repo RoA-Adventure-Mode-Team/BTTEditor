@@ -8,11 +8,10 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
-
-#include <d3d9.h>
-#include <d3dx9.h>
+#include <d3d11.h>
 
 #include <assert.h>
+#include <any>
 
 #include "RendererManager.h"
 #include "Renderer.h"

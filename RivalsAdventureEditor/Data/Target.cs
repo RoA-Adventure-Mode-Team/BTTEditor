@@ -10,7 +10,7 @@ using System.Windows;
 namespace RivalsAdventureEditor.Data
 {
     [JsonObject()]
-    public class Target : Obj
+    public class Target : Article
     {
         [ArticleProperty(0)]
         public int TargID { get; set; }

@@ -18,12 +18,12 @@ namespace RivalsAdventureEditor.Commands
 
         public bool CanExecute(object parameter)
         {
-            return parameter is Obj;
+            return parameter is Article;
         }
 
         public void Execute(object parameter)
         {
-            if(parameter is Obj article)
+            if(parameter is Article article)
             {
                 var serializer = new JsonSerializer();
                 var sb = new StringBuilder();

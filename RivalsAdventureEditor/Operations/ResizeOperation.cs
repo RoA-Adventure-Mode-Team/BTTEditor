@@ -24,7 +24,7 @@ namespace RivalsAdventureEditor.Operations
         public int EndWidth { get; set; } 
         public int EndHeight { get; set; }
 
-        public override string Parameter => $"{Obj.Article.ToString()}({Obj.Name}), Cell ({CellX}, {CellY}), Pos ({EndX}, {EndY}), Size({EndWidth}, {EndHeight})";
+        public override string Parameter => $"{Obj.ArticleNum.ToString()}({Obj.Name}), Cell ({CellX}, {CellY}), Pos ({EndX}, {EndY}), Size({EndWidth}, {EndHeight})";
 
         public ResizeOperation(Project project, Zone obj, float x, float y, int width, int height) : base(project)
         {

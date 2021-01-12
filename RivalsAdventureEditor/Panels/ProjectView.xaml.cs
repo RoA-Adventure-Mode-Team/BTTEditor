@@ -57,6 +57,7 @@ namespace RivalsAdventureEditor.Panels
         {
             var ext = Path.GetExtension(filename);
             var proj = new Project() { ProjectPath = filename, Name = Path.GetFileNameWithoutExtension(filename), Type = (ext == ".btts" ? ProjectType.BreakTheTargets : ProjectType.AdventureMode) };
+            proj.Rooms.Add(new Room() { Name = "Room 1" });
             ApplicationSettings.Instance.Projects.Add(proj);
             using (StreamWriter writer = new StreamWriter(filename))
             {
@@ -105,6 +106,33 @@ namespace RivalsAdventureEditor.Panels
             var dlg = new ImportRoomDataDialogue() { Project = ((FrameworkElement)sender).DataContext as Project };
             dlg.ShowDialog();
             RoomEditor.Instance.Reload();
+        }
+
+        private void UpdateBindings(object sender, RoutedEventArgs e)
+        {
+            if(sender is ContextMenu menu)
+            {
+                foreach(MenuItem item in menu.Items)
+                {
+                    var expr = item.GetBindingExpression(MenuItem.CommandParameterProperty);
+                    if(expr != null)
+                        expr.UpdateTarget();
+                }
+            }
+        }
+
+        private void CanDeleteProject(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = e.Parameter != null;
+        }
+
+        private void DeleteProject(object sender, ExecutedRoutedEventArgs e)
+        {
+            if(ApplicationSettings.Instance.ActiveProject == e.Parameter)
+            {
+                SetActiveProject(ApplicationSettings.Instance.Projects.FirstOrDefault(p => p != e.Parameter));
+            }
+            ApplicationSettings.Instance.Projects.Remove(e.Parameter as Project);
         }
     }
 }

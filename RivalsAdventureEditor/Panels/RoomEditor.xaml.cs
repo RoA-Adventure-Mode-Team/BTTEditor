@@ -35,7 +35,7 @@ namespace RivalsAdventureEditor.Panels
 
         public Dictionary<string, TexData> LoadedImages { get; } = new Dictionary<string, TexData>();
         public static readonly DependencyProperty SelectedObjProperty = DependencyProperty.Register(nameof(SelectedObj),
-            typeof(Obj),
+            typeof(Article),
             typeof(RoomEditor),
             new FrameworkPropertyMetadata(SelectedObjPropertyChanged));
 
@@ -45,9 +45,9 @@ namespace RivalsAdventureEditor.Panels
                 ObjViewer.Instance.Update();
         }
 
-        public Obj SelectedObj
+        public Article SelectedObj
         {
-            get { return GetValue(SelectedObjProperty) as Obj; }
+            get { return GetValue(SelectedObjProperty) as Article; }
             set { SetValue(SelectedObjProperty, value); }
         }
         public int SelectedPath { get; set; } = -1;
@@ -56,9 +56,15 @@ namespace RivalsAdventureEditor.Panels
         private Point RenderOffset { get; set; } = new Point(0, 0);
         private float zoomLevel = 0.5f;
 
-        private readonly List<Obj> articles = new List<Obj>();
+        private readonly List<Article> articles = new List<Article>();
 
         public ProcedureBase ActiveProcedure { get; private set; }
+        private DX_Article[] articles_internal = new DX_Article[16];
+        int articles_count_internal = 0;
+        private DX_Line[] lines_internal = new DX_Line[16];
+        int lines_count_internal = 0;
+        private DX_Tilemap[] tilemap_internal = new DX_Tilemap[16];
+        int tilemap_count_internal = 0;
 
         public RoomEditor()
         {
@@ -201,7 +207,7 @@ namespace RivalsAdventureEditor.Panels
             }
         }
 
-        void CompositionTarget_Rendering(object sender, EventArgs e)
+        unsafe void CompositionTarget_Rendering(object sender, EventArgs e)
         {
             RenderingEventArgs args = (RenderingEventArgs)e;
 
@@ -213,58 +219,69 @@ namespace RivalsAdventureEditor.Panels
                 HRESULT.Check(GetBackBufferNoRef(out pSurface));
                 if (pSurface != IntPtr.Zero)
                 {
-                    d3dimg.Lock();
-                    // Repeatedly calling SetBackBuffer with the same IntPtr is
-                    // a no-op. There is no performance penalty.
-                    d3dimg.SetBackBuffer(D3DResourceType.IDirect3DSurface9, pSurface);
-                    SetCameraTransform(new Point (RenderOffset.X, RenderOffset.Y), zoomLevel);
-                    if(!Instance.LoadedImages.ContainsKey("roaam_path"))
+                    if (!Instance.LoadedImages.ContainsKey("roaam_path"))
                     {
                         LoadDefaults();
                     }
-                    StartDraw();
-                    foreach (var art in articles)
+
+                    foreach (Article art in articles)
                     {
-                        var spriteName = art.Sprite;
+                        string spriteName = art.Sprite;
+                        // Check if the sprite is loaded
                         if (!Instance.LoadedImages.ContainsKey(spriteName))
                         {
+                            // If spritename is set, attempt to load sprite
                             bool hasSprite = false;
                             if (!string.IsNullOrEmpty(spriteName))
-                                hasSprite = RoomEditor.LoadImage(spriteName);
+                                hasSprite = LoadImage(spriteName);
+
+                            // If no sprite is found, use EmptyImage for this article
                             if (!hasSprite)
                             {
-                                var overrideSpr = FindResource("EmptyImage") as BitmapImage;
-                                Instance.LoadedImages[spriteName] = new TexData { exists = false };
-                                RegisterTexture(spriteName, System.AppDomain.CurrentDomain.BaseDirectory + overrideSpr.UriSource.LocalPath, 1);
+                                BitmapImage overrideSpr = FindResource("EmptyImage") as BitmapImage;
+                                RegisterTexture(spriteName, AppDomain.CurrentDomain.BaseDirectory + overrideSpr.UriSource.LocalPath, 1, out int texture);
+                                Instance.LoadedImages[spriteName] = new TexData(false, texture, null);
                             }
                         }
-                        var data = Instance.LoadedImages[spriteName];
-                        var offset = art.RealPoint - new Vector(data.offset.X, data.offset.Y);
-                        Point scale = new Point (1, 1);
+
+                        // Get texture data for this article
+                        TexData sprite = Instance.LoadedImages[spriteName];
+                        Point offset = art.RealPoint - new Vector(sprite.offset.X, sprite.offset.Y);
+                        Point scale = new Point(1, 1);
                         System.Drawing.Color color = System.Drawing.Color.White;
-                        switch(art.Article)
+
+                        switch (art.ArticleNum)
                         {
                             case ArticleType.Terrain:
-                                scale = new Point (2, 2);
+                                scale = new Point(2, 2);
                                 break;
                             case ArticleType.Zone:
                                 if (art is Zone zone)
                                 {
-                                    scale = new Point (zone.TriggerWidth, zone.TriggerHeight);
-                                    //blastzone
-                                    switch(zone.EventID)
+                                    scale = new Point(zone.TriggerWidth, zone.TriggerHeight);
+                                    // Set the color based on event type
+                                    switch (zone.EventID)
                                     {
+                                        //blastzone
                                         case 4:
                                             color = System.Drawing.Color.Red;
                                             break;
                                     }
+                                    // Make semi-transparent
                                     color = System.Drawing.Color.FromArgb(64, color.R, color.G, color.B);
-                                    if (SelectedObj == zone)
+
+                                    // Show transform handles
+                                    if (SelectedObj == art)
                                     {
-                                        var sqrOffset = Instance.LoadedImages["roaam_square"].offset;
-                                        foreach (var point in ROAAM_CONST.ZONE_POINTS)
+                                        // Push a box at each corner of the zone for scale handles
+                                        TexData spr = Instance.LoadedImages["roaam_square"];
+                                        foreach (Point point in ROAAM_CONST.ZONE_POINTS)
                                         {
-                                            PushSprite(new DX_Article { Translate = new Point(zone.RealPoint.X + point.X * zone.TriggerWidth - sqrOffset.X / zoomLevel, zone.RealPoint.Y + point.Y * zone.TriggerHeight - sqrOffset.Y / zoomLevel), Scale = new Point(1 / zoomLevel, 1 / zoomLevel), Depth = -15, name = "roaam_square", Color = System.Drawing.Color.White.ToArgb() });
+                                            PushArticle(new DX_Article(
+                                                spr.texture,
+                                                zone.RealPoint + new Vector(point.X * zone.TriggerWidth, point.Y * zone.TriggerHeight) - (Vector)spr.offset / zoomLevel,
+                                                new Point(1 / zoomLevel, 1 / zoomLevel),
+                                                -15));
                                         }
                                     }
                                 }
@@ -272,51 +289,135 @@ namespace RivalsAdventureEditor.Panels
                             case ArticleType.Target:
                                 if (SelectedObj == art && (art as Target).Path.Any())
                                 {
-                                    Point prev = (art as Target).Path.Last();
-                                    for(int i = 0; i < (art as Target).Path.Count; i++)
+                                    Vector prev = (Vector)(art as Target).Path.Last();
+                                    for (int i = 0; i < (art as Target).Path.Count; i++)
                                     {
-                                        var point = (art as Target).Path[i];
-                                        var targOffset = Instance.LoadedImages["roaam_path"].offset;
-                                        PushSprite(new DX_Article { Translate = new Point(point.X * ROAAM_CONST.GRID_SIZE - targOffset.Y, point.Y * ROAAM_CONST.GRID_SIZE - targOffset.Y), Scale = new Point(1, 1), Depth = -10, name = "roaam_path", Color = System.Drawing.Color.White.ToArgb() });
-                                        if (SelectedObj == art)
-                                        {
-                                            var c = System.Drawing.Color.FromArgb(64, 255, 255, 255);
-                                            PushSprite(new DX_Article { Translate = new Point(point.X * ROAAM_CONST.GRID_SIZE - data.offset.X, point.Y * ROAAM_CONST.GRID_SIZE - data.offset.Y), Scale = scale, Depth = art.Depth, name = spriteName, Color = c.ToArgb() } );
-                                            if(SelectedPath == i)
-                                            {
-                                                var arrowOffset = Instance.LoadedImages["roaam_arrows"].offset;
-                                                PushSprite(new DX_Article { Translate = new Point(point.X * ROAAM_CONST.GRID_SIZE - arrowOffset.X / zoomLevel, point.Y * ROAAM_CONST.GRID_SIZE - arrowOffset.Y / zoomLevel), Scale = new Point(1 / zoomLevel, 1 / zoomLevel), Depth = -15, name = "roaam_arrows", Color = System.Drawing.Color.White.ToArgb() });
+                                        Vector point = (Vector)(art as Target).Path[i];
+                                        TexData targSpr = Instance.LoadedImages["roaam_path"];
 
-                                            }
+                                        // Push path point sprite to renderer
+                                        PushArticle(new DX_Article(
+                                            targSpr.texture,
+                                            (Point)((point * ROAAM_CONST.GRID_SIZE) - (Vector)targSpr.offset),
+                                            new Point(1, 1),
+                                            -10));
+                                        // Push semi-transparent target sprite to renderer
+                                        PushArticle(new DX_Article(
+                                            sprite.texture,
+                                            (Point)((point * ROAAM_CONST.GRID_SIZE) - (Vector)sprite.offset),
+                                            scale,
+                                            art.Depth,
+                                            unchecked((int)0x40FFFFFF)));
+
+                                        // Push transform handles if this path point is selected
+                                        if (SelectedPath == i)
+                                        {
+                                            TexData arrowSpr = Instance.LoadedImages["roaam_arrows"];
+                                            PushArticle(new DX_Article(
+                                                arrowSpr.texture,
+                                                (Point)((point * ROAAM_CONST.GRID_SIZE) - ((Vector)arrowSpr.offset / zoomLevel)),
+                                                new Point(1 / zoomLevel, 1 / zoomLevel),
+                                                -15));
                                         }
-                                        int pathColor = System.Drawing.Color.White.ToArgb();
+
+                                        // Push path line to renderer, and highlight orange if selected in editor panel
+                                        int pathColor = unchecked((int)0xFFFFFFFF);
                                         float width = 2;
                                         if (i == ObjViewer.Instance.HighlightedPath)
                                         {
                                             pathColor = System.Drawing.Color.Orange.ToArgb();
                                             width = 4;
                                         }
-                                        PushLine(new Point (prev.X * ROAAM_CONST.GRID_SIZE, prev.Y * ROAAM_CONST.GRID_SIZE), new Point(point.X * ROAAM_CONST.GRID_SIZE, point.Y * ROAAM_CONST.GRID_SIZE), pathColor, width);
+                                        PushLine(new DX_Line((Point)(prev * ROAAM_CONST.GRID_SIZE),
+                                            (Point)(point * ROAAM_CONST.GRID_SIZE),
+                                            width,
+                                            art.Depth - 0.1f,
+                                            pathColor));
+                                        // Store this point for line drawing
                                         prev = point;
                                     }
                                 }
                                 break;
+                            case ArticleType.Tilemap:
+                                if(art is Tilemap tilemap)
+                                {
+                                    Tileset tileset = tilemap.Tileset;
+                                    if (tileset == null)
+                                        continue;
+                                    // Check if the sprite is loaded
+                                    if (!Instance.LoadedImages.ContainsKey(tileset.SpritePath))
+                                    {
+                                        // If spritename is set, attempt to load sprite
+                                        bool hasSprite = false;
+                                        if (!string.IsNullOrEmpty(tileset.SpritePath))
+                                            hasSprite = LoadImage(tileset.SpritePath);
+
+                                        // If no sprite is found, use EmptyImage for this article
+                                        if (!hasSprite)
+                                        {
+                                            BitmapImage overrideSpr = FindResource("EmptyImage") as BitmapImage;
+                                            RegisterTexture(tileset.SpritePath, AppDomain.CurrentDomain.BaseDirectory + overrideSpr.UriSource.LocalPath, 1, out int texture);
+                                            Instance.LoadedImages[tileset.SpritePath] = new TexData(false, texture, null);
+                                        }
+                                    }
+
+                                    TexData tex = LoadedImages[tileset.SpritePath];
+                                    foreach (var tilegrid in tilemap.Tilegrid)
+                                    {
+                                        Point pos = new Point(tileset.TileWidth * TilegridArray.ChunkSizeX * tilegrid.Key.Item1 + tilemap.RealPoint.X,
+                                            tileset.TileHeight * TilegridArray.ChunkSizeY * tilegrid.Key.Item2 + tilemap.RealPoint.Y);
+                                        PushTilemap(new DX_Tilemap(tex.texture, pos, tileset.TileWidth, tileset.TileHeight, tilegrid.Value, tilemap.Depth));
+                                    }
+                                }
+                                break;
                         }
-                        PushSprite(new DX_Article { Translate = new Point (offset.X, offset.Y), Scale = scale, Depth = art.Depth, name = spriteName, Color = SelectedObj == art ? System.Drawing.Color.Orange.ToArgb() : color.ToArgb() });
+
+                        if (art.ArticleNum != ArticleType.Tilemap)
+                        {
+                            // Push the article sprite to the renderer
+                            PushArticle(new DX_Article(
+                                sprite.texture,
+                                new Point(offset.X, offset.Y),
+                                scale,
+                                art.Depth,
+                                SelectedObj == art ? System.Drawing.Color.Orange.ToArgb() : color.ToArgb()));
+                        }
+
                         if (SelectedObj == art && SelectedPath == -1)
                         {
-                            var arrowOffset =  Instance.LoadedImages["roaam_arrows"].offset;
+                            TexData arrowSpr = Instance.LoadedImages["roaam_arrows"];
                             if (art is Zone zone)
-                            {
                                 offset = new Point(offset.X + zone.TriggerWidth / 2, offset.Y + zone.TriggerHeight / 2);
-                            }
-                            PushSprite(new DX_Article { Translate = new Point(offset.X - arrowOffset.X / zoomLevel, offset.Y - arrowOffset.Y / zoomLevel), Scale = new Point(1 / zoomLevel, 1 / zoomLevel), Depth = -15, name = "roaam_arrows", Color = System.Drawing.Color.White.ToArgb() });
+
+                            // Push the transform handles to the renderer if selected
+                            PushArticle(new DX_Article(
+                                arrowSpr.texture,
+                                offset - ((Vector)arrowSpr.offset / zoomLevel),
+                                new Point(1 / zoomLevel, 1 / zoomLevel),
+                                -15));
                         }
                     }
-                    if(ApplicationSettings.Instance.ActiveProject != null)
-                        PushSprite(new DX_Article { Translate = ApplicationSettings.Instance.ActiveProject.RespawnPoint - (Vector)Instance.LoadedImages["roaam_respawn"].offset, Depth = 5, name = "roaam_respawn", Scale = new Point(1, 1), Color = System.Drawing.Color.White.ToArgb() });
 
-                    HRESULT.Check(Render());
+                    if (ApplicationSettings.Instance.ActiveProject != null)
+                    {
+                        TexData respawnSpr = Instance.LoadedImages["roaam_respawn"];
+                        PushArticle(new DX_Article(
+                            respawnSpr.texture,
+                            ApplicationSettings.Instance.ActiveProject.RespawnPoint - (Vector)respawnSpr.offset, 
+                            new Point(1, 1),
+                            5));
+                    }
+
+                    d3dimg.Lock();
+                    d3dimg.SetBackBuffer(D3DResourceType.IDirect3DSurface9, pSurface);
+                    SetCameraTransform(new Point(RenderOffset.X, RenderOffset.Y), zoomLevel);
+
+                    StartDraw();
+                    HRESULT.Check(Render(articles_internal, articles_count_internal, lines_internal, lines_count_internal, tilemap_internal, tilemap_count_internal));
+                    ClearArticles();
+                    ClearLines();
+                    ClearTilemaps();
+
                     d3dimg.AddDirtyRect(new Int32Rect(0, 0, d3dimg.PixelWidth, d3dimg.PixelHeight));
                     d3dimg.Unlock();
 
@@ -357,7 +458,7 @@ namespace RivalsAdventureEditor.Panels
         }
 
         [DllImport("D3DContent.dll")]
-        static extern int RegisterTexture([MarshalAs(UnmanagedType.LPStr)]string key, [MarshalAs(UnmanagedType.LPWStr)]string fname, int frames);
+        static extern int RegisterTexture([MarshalAs(UnmanagedType.LPStr)]string key, [MarshalAs(UnmanagedType.LPWStr)]string fname, int frames, out int texture);
 
         [DllImport("D3DContent.dll")]
         static extern int SetAdapter(POINT screenSpacePoint);
@@ -369,13 +470,7 @@ namespace RivalsAdventureEditor.Panels
         static extern int StartDraw();
 
         [DllImport("D3DContent.dll")]
-        static extern int PushSprite(DX_Article art);
-
-        [DllImport("D3DContent.dll")]
-        static extern int PushLine(Point start, Point end, int color, float width);
-
-        [DllImport("D3DContent.dll")]
-        static extern int Render();
+        static extern int Render(DX_Article[] articles, int count, DX_Line[] lines, int line_count, DX_Tilemap[] tilemaps, int tilemap_count);
 
         [DllImport("D3DContent.dll")]
         static extern void Destroy();
@@ -394,7 +489,7 @@ namespace RivalsAdventureEditor.Panels
             articles.Clear();
             if (ApplicationSettings.Instance.ActiveRoom != null)
             {
-                foreach (var art in ApplicationSettings.Instance.ActiveRoom.Objs)
+                foreach (Article art in ApplicationSettings.Instance.ActiveRoom.Objs)
                 {
                     articles.Add(art);
                 }
@@ -405,14 +500,14 @@ namespace RivalsAdventureEditor.Panels
         {
             if (e.Action == NotifyCollectionChangedAction.Add)
             {
-                foreach (Obj article in e.NewItems)
+                foreach (Article article in e.NewItems)
                 {
                     articles.Add(article);
                 }
             }
             if (e.Action == NotifyCollectionChangedAction.Remove)
             {
-                foreach (Obj article in e.OldItems)
+                foreach (Article article in e.OldItems)
                 {
                     articles.Remove(article);
                 }
@@ -428,11 +523,11 @@ namespace RivalsAdventureEditor.Panels
             if (Instance.LoadedImages.ContainsKey(name))
                 return Instance.LoadedImages[name].exists;
             Point offset = new Point();
-            var loadFile = Path.Combine(Path.GetDirectoryName(ApplicationSettings.Instance.ActiveProject.ProjectPath), "scripts", "load.gml");
+            string loadFile = Path.Combine(Path.GetDirectoryName(ApplicationSettings.Instance.ActiveProject.ProjectPath), "scripts", "load.gml");
             MatchCollection matches = null;
             if(File.Exists(loadFile))
             {
-                var lines = File.ReadAllText(loadFile);
+                string lines = File.ReadAllText(loadFile);
                 matches = Regex.Matches(lines, "sprite_change_offset\\s*\\(\\s*\"([\\w\\d]+)\",\\s*(\\d+),\\s*(\\d+)\\s*\\)");
             }
             string directory;
@@ -442,7 +537,7 @@ namespace RivalsAdventureEditor.Panels
                 directory = Path.Combine(Path.GetDirectoryName(ApplicationSettings.Instance.ActiveProject.ProjectPath), "sprites");
             if (File.Exists(Path.Combine(directory, name + ".png")))
             {
-                var path = Path.Combine(directory, name + ".png");
+                string path = Path.Combine(directory, name + ".png");
                 System.Drawing.Bitmap img = null;
                 using (FileStream file = new FileStream(path, FileMode.Open))
                 {
@@ -450,27 +545,28 @@ namespace RivalsAdventureEditor.Panels
                     file.CopyTo(stream);
                     img = new System.Drawing.Bitmap(stream);
                 }
-                RegisterTexture(name, path, 1);
+                RegisterTexture(name, path, 1, out int texture);
                 if (matches != null)
                 {
-                    var match = matches.OfType<Match>().FirstOrDefault(m => m.Groups[1].Value == name);
+                    Match match = matches.OfType<Match>().FirstOrDefault(m => m.Groups[1].Value == name);
                     if (match != null)
                     {
                         offset.X = Double.Parse(match.Groups[2].Value);
                         offset.Y = Double.Parse(match.Groups[3].Value);
                     }
                 }
-                Instance.LoadedImages[name] = new TexData { exists = true, offset = offset, image = img };
+                Instance.LoadedImages[name] = new TexData(true, texture, img, offset);
                 return true;
             }
+
             var files = Directory.EnumerateFiles(directory, name + "*.png");
             if (files.Any())
             {
-                var file = files.FirstOrDefault(f => Regex.Match(f, name + "_strip(\\d+)").Success);
+                string file = files.FirstOrDefault(f => Regex.Match(f, name + "_strip(\\d+)").Success);
                 if (!string.IsNullOrEmpty(file))
                 {
-                    var match = Regex.Match(file, "strip(\\d+)");
-                    var count = int.Parse(match.Groups[1].Value);
+                    Match match = Regex.Match(file, "strip(\\d+)");
+                    int count = int.Parse(match.Groups[1].Value);
                     System.Drawing.Bitmap img = null;
                     using (FileStream fstream = new FileStream(file, FileMode.Open))
                     {
@@ -478,22 +574,22 @@ namespace RivalsAdventureEditor.Panels
                         fstream.CopyTo(stream);
                         img = new System.Drawing.Bitmap(stream);
                     }
-                    RegisterTexture(name, file, count);
-                    var index = file.IndexOf("_strip");
+                    RegisterTexture(name, file, count, out int texture);
+                    int index = file.IndexOf("_strip");
                     if (matches != null)
                     {
-                        var offsetMatch = matches.OfType<Match>().FirstOrDefault(m => m.Groups[1].Value == file.Substring(0, index));
+                        Match offsetMatch = matches.OfType<Match>().FirstOrDefault(m => m.Groups[1].Value == file.Substring(0, index));
                         if (offsetMatch != null)
                         {
                             offset.X = Double.Parse(offsetMatch.Groups[2].Value);
                             offset.Y = Double.Parse(offsetMatch.Groups[3].Value);
                         }
                     }
-                    Instance.LoadedImages[name] = new TexData { exists = true, offset = offset, image = img };
+                    Instance.LoadedImages[name] = new TexData(true, texture, img, offset);
                     return true;
                 }
             }
-            Instance.LoadedImages[name] = new TexData { exists = false, offset = offset };
+            Instance.LoadedImages[name] = new TexData(false, 0);
             return false;
         }
 
@@ -567,7 +663,7 @@ namespace RivalsAdventureEditor.Panels
             {
                 if (ActiveProcedure == null)
                 {
-                    RenderOffset += (point - PrevPoint) * (1 / zoomLevel);
+                    RenderOffset += ((point - PrevPoint) * (1 / zoomLevel));
                 }
             }
             if (ActiveProcedure != null)
@@ -635,7 +731,7 @@ namespace RivalsAdventureEditor.Panels
             var transform = GetTransform();
             var absPoint = transform.Transform(point);
 
-            Obj top = null;
+            Article top = null;
 
             if(SelectedObj != null && SelectedObj is Target targ)
             {
@@ -672,7 +768,7 @@ namespace RivalsAdventureEditor.Panels
                     var cell_offset = new Vector(-art.CellX * ROAAM_CONST.CELL_WIDTH, art.CellY * ROAAM_CONST.CELL_HEIGHT);
                     var offset = (cell_offset + new Vector(art.X * ROAAM_CONST.GRID_SIZE, art.Y * ROAAM_CONST.GRID_SIZE) - new Vector(spr.offset.X, spr.offset.Y));
                     Point scale = new Point (1, 1);
-                    switch (art.Article)
+                    switch (art.ArticleNum)
                     {
                         case ArticleType.Terrain:
                             scale = new Point (2, 2);
@@ -729,32 +825,32 @@ namespace RivalsAdventureEditor.Panels
         internal void LoadDefaults()
         {
             var spr = FindResource("PathPoint") as BitmapImage;
-            RegisterTexture("roaam_path", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1);
-            Instance.LoadedImages["roaam_path"] = new TexData { exists = true, offset = new Point (12, 12), image = BitmapImageToBitmap(spr)};
+            RegisterTexture("roaam_path", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1, out int texture);
+            Instance.LoadedImages["roaam_path"] = new TexData (true, texture, BitmapImageToBitmap(spr), new Point (12, 12));
 
             spr = FindResource("EmptyImage") as BitmapImage;
-            RegisterTexture("roaam_empty", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1);
-            Instance.LoadedImages["roaam_empty"] = new TexData { exists = true, offset = new Point (9, 9), image = BitmapImageToBitmap(spr) };
+            RegisterTexture("roaam_empty", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1, out texture);
+            Instance.LoadedImages["roaam_empty"] = new TexData(true, texture, BitmapImageToBitmap(spr), new Point(9, 9));
 
             spr = FindResource("WhitePixel") as BitmapImage;
-            RegisterTexture("roaam_zone", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1);
-            Instance.LoadedImages["roaam_zone"] = new TexData { exists = true, offset = new Point { }, image = BitmapImageToBitmap(spr) };
+            RegisterTexture("roaam_zone", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1, out texture);
+            Instance.LoadedImages["roaam_zone"] = new TexData(true, texture, BitmapImageToBitmap(spr));
 
             spr = FindResource("TargetSprite") as BitmapImage;
-            RegisterTexture("roaam_target", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1);
-            Instance.LoadedImages["roaam_target"] = new TexData { exists = true, offset = new Point { }, image = BitmapImageToBitmap(spr) };
+            RegisterTexture("roaam_target", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1, out texture);
+            Instance.LoadedImages["roaam_target"] = new TexData(true, texture, BitmapImageToBitmap(spr));
 
             spr = FindResource("Arrows") as BitmapImage;
-            RegisterTexture("roaam_arrows", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1);
-            Instance.LoadedImages["roaam_arrows"] = new TexData { exists = true, offset = new Point(56, 56), image = BitmapImageToBitmap(spr) };
+            RegisterTexture("roaam_arrows", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1, out texture);
+            Instance.LoadedImages["roaam_arrows"] = new TexData(true, texture, BitmapImageToBitmap(spr), new Point(56, 56));
 
             spr = FindResource("Square") as BitmapImage;
-            RegisterTexture("roaam_square", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1);
-            Instance.LoadedImages["roaam_square"] = new TexData { exists = true, offset = new Point(18, 18), image = BitmapImageToBitmap(spr) };
+            RegisterTexture("roaam_square", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1, out texture);
+            Instance.LoadedImages["roaam_square"] = new TexData(true, texture, BitmapImageToBitmap(spr), new Point(18, 18));
 
             spr = FindResource("Respawn") as BitmapImage;
-            RegisterTexture("roaam_respawn", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1);
-            Instance.LoadedImages["roaam_respawn"] = new TexData { exists = true, offset = new Point(16, 32), image = BitmapImageToBitmap(spr) };
+            RegisterTexture("roaam_respawn", System.AppDomain.CurrentDomain.BaseDirectory + spr.UriSource.LocalPath, 1, out texture);
+            Instance.LoadedImages["roaam_respawn"] = new TexData(true, texture, BitmapImageToBitmap(spr), new Point(16, 32));
         }
 
         public Transform GetTransform()
@@ -783,6 +879,55 @@ namespace RivalsAdventureEditor.Panels
                 return new System.Drawing.Bitmap(bitmap);
             }
         }
+
+        private void PushArticle(DX_Article article)
+        {
+            if (articles_count_internal + 1 >= articles_internal.Length)
+            {
+                DX_Article[] new_array = new DX_Article[articles_internal.Length * 2];
+                articles_internal.CopyTo(new_array, 0);
+                articles_internal = new_array;
+            }
+
+            articles_internal[articles_count_internal++] = article;
+        }
+
+        private void PushLine(DX_Line line)
+        {
+            if (lines_count_internal + 1 >= lines_internal.Length)
+            {
+                DX_Line[] new_array = new DX_Line[lines_internal.Length * 2];
+                lines_internal.CopyTo(new_array, 0);
+                lines_internal = new_array;
+            }
+
+            lines_internal[lines_count_internal++] = line;
+        }
+
+        private void PushTilemap(DX_Tilemap tilemap)
+        {
+            if (tilemap_count_internal + 1 >= tilemap_internal.Length)
+            {
+                DX_Tilemap[] new_array = new DX_Tilemap[tilemap_internal.Length * 2];
+                tilemap_internal.CopyTo(new_array, 0);
+                tilemap_internal = new_array;
+            }
+
+            tilemap_internal[tilemap_count_internal++] = tilemap;
+        }
+
+        private void ClearArticles()
+        {
+            articles_count_internal = 0;
+        }
+        private void ClearLines()
+        {
+            lines_count_internal = 0;
+        }
+        private void ClearTilemaps()
+        {
+            tilemap_count_internal = 0;
+        }
     }
 
     public static class HRESULT
@@ -796,17 +941,93 @@ namespace RivalsAdventureEditor.Panels
 
     public struct TexData
     {
+        public TexData(bool _exists, int _texture, System.Drawing.Bitmap _image = null)
+        {
+            exists = _exists;
+            texture = _texture;
+            image = _image;
+        }
+
+        public TexData(bool _exists, int _texture, System.Drawing.Bitmap _image, Point _offset)
+        {
+            exists = _exists;
+            texture = _texture;
+            offset = _offset;
+            image = _image;
+        }
+
         public bool exists;
+        public int texture;
         public Point offset;
         public System.Drawing.Bitmap image;
     }
 
     struct DX_Article
     {
-        [MarshalAs(UnmanagedType.LPStr)] public string name;
+        public DX_Article(int texture, Point translate, Point scale, float depth, int color = unchecked((int)0xFFFFFFFF))
+        {
+            Depth = depth;
+            Type = DX_Type.ARTICLE;
+            Texture = texture;
+            Translate = translate;
+            Scale = scale;
+            Color = color;
+        }
+
+        public float Depth;
+        public DX_Type Type;
+        public int Texture;
         public Point Translate;
         public Point Scale;
-        public float Depth;
         public int Color;
+    }
+
+    struct DX_Line
+    {
+        public DX_Line(Point start, Point end, float width, float depth, int color = unchecked((int)0xFFFFFFFF))
+        {
+            Depth = depth;
+            Type = DX_Type.LINE;
+            Start = start;
+            End = end;
+            Width = width;
+            Color = color;
+        }
+
+        public float Depth;
+        public DX_Type Type;
+        public Point Start;
+        public Point End;
+        public float Width;
+        public int Color;
+    }
+
+    struct DX_Tilemap
+    {
+        public DX_Tilemap(int texture, Point translate, int tile_width, int tile_height, uint[,] map, float depth)
+        {
+            Depth = depth;
+            Type = DX_Type.TILEMAP;
+            Texture = texture;
+            Translate = translate;
+            TileWidth = tile_width;
+            TileHeight = tile_height;
+            Map = map;
+        }
+
+        public float Depth;
+        public DX_Type Type;
+        public int Texture;
+        public int TileWidth;
+        public int TileHeight;
+        public Point Translate;
+        public uint[,] Map;
+    }
+
+    enum DX_Type
+    {
+        ARTICLE = 0,
+        LINE,
+        TILEMAP,
     }
 }

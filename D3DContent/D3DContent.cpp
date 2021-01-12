@@ -1,5 +1,6 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "stdafx.h"
+#include "IRenderElement.h"
 
 BOOL APIENTRY DllMain(HMODULE hModule,
   DWORD  ul_reason_for_call,
@@ -72,7 +73,7 @@ Cleanup:
   return hr;
 }
 
-extern "C" HRESULT WINAPI GetBackBufferNoRef(IDirect3DSurface9 * *ppSurface)
+extern "C" HRESULT WINAPI GetBackBufferNoRef(IDirect3DSurface9 **ppSurface)
 {
   HRESULT hr = S_OK;
 
@@ -84,13 +85,13 @@ Cleanup:
   return hr;
 }
 
-extern "C" HRESULT WINAPI RegisterTexture(LPSTR key, LPWSTR fname, int frames)
+extern "C" HRESULT WINAPI RegisterTexture(LPSTR key, LPWSTR fname, int frames, TextureData **texture)
 {
   HRESULT hr = S_OK;
 
   IFC(EnsureRendererManager());
 
-  hr = pManager->RegisterTexture(key, fname, frames);
+  hr = pManager->RegisterTexture(key, fname, frames, texture);
 
 Cleanup:
   return hr;
@@ -100,43 +101,34 @@ extern "C" HRESULT WINAPI StartDraw()
 {
   HRESULT hr = S_OK;
   IFC(EnsureRendererManager());
-  pManager->StartDraw();
-Cleanup:
-  return hr;
-}
-
-extern "C" HRESULT WINAPI PushSprite(Article art)
-{
-  HRESULT hr = S_OK;
-  IFC(EnsureRendererManager());
-  pManager->DrawArticle(art);
-Cleanup:
-  return hr;
-}
-
-extern "C" HRESULT WINAPI PushLine(Vector2 start, Vector2 end, int color, float width)
-{
-  HRESULT hr = S_OK;
-  IFC(EnsureRendererManager());
-  pManager->DrawLine(start, end, color, width);
 Cleanup:
   return hr;
 }
 
 extern "C" HRESULT WINAPI SetCameraTransform(Vector2 pos, float zoom)
 {
+  D3DSURFACE_DESC desc;
+  IDirect3DSurface9* surf;
+  pManager->GetBackBufferNoRef(&surf);
+  surf->GetDesc(&desc);
+
+  // Transform camera from world coordinates into this stupid rendering coords
   D3DXMATRIX transmat;
-  D3DXMatrixTranslation(&transmat, pos.x, pos.y, 0);
+  D3DXMatrixTranslation(&transmat, pos.x * (2 * zoom / desc.Width) - 1, pos.y * -(2 * zoom / desc.Height) + 1, 0);
   D3DXMATRIX scalemat;
-  D3DXMatrixScaling(&scalemat, zoom, zoom, 1);
-  pManager->SetCameraTransform(transmat * scalemat);
+  D3DXMatrixScaling(&scalemat, 2* zoom / desc.Width, -2 *zoom / desc.Height, 1);
+
+  pManager->SetCameraTransform(scalemat * transmat);
   return S_OK;
 }
 
-extern "C" HRESULT WINAPI Render()
+extern "C" HRESULT WINAPI Render(Article * articles, int count, Line * lines, int line_count, Tilemap * tilemaps, int tilemap_count)
 {
   assert(pManager);
 
+  pManager->PushArticles(articles, count);
+  pManager->PushLines(lines, line_count);
+  pManager->PushTilemaps(tilemaps, tilemap_count);
   return pManager->Render();
 }
 

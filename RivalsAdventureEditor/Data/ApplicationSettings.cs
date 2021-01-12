@@ -26,6 +26,7 @@ namespace RivalsAdventureEditor.Data
             set 
             {
                 _activeProject = value;
+                ProjectCommands.UpdateCanExecute();
                 if (RoomEditor.Instance != null)
                 {
                     RoomEditor.Instance.ResetImages();
@@ -35,7 +36,17 @@ namespace RivalsAdventureEditor.Data
         Project _activeProject;
         public string ActiveProjectPath { get; set; }
         [JsonIgnore]
-        public Room ActiveRoom { get; set; }
+        public Room ActiveRoom
+        {
+            get { return _activeRoom; }
+            set 
+            {
+                _activeRoom = value;
+                ProjectCommands.UpdateCanExecute();
+            }
+        }
+        Room _activeRoom;
+
         public int ActiveRoomNum { get; set; }
 
         [JsonIgnore]
@@ -56,7 +67,7 @@ namespace RivalsAdventureEditor.Data
                         cmd.Execute(path);
                     }
                     Instance.ActiveProject = Instance.Projects.FirstOrDefault(p => p.ProjectPath == Instance.ActiveProjectPath);
-                    if(Instance.ActiveRoomNum != -1)
+                    if(Instance.ActiveRoomNum != -1 && (Instance.ActiveProject?.Rooms.Count ?? 0) > 0)
                         Instance.ActiveRoom = Instance.ActiveProject?.Rooms[Instance.ActiveRoomNum];
                 }
             }

@@ -17,18 +17,18 @@ namespace RivalsAdventureEditor.Commands
         public static CommandBase GenerateRoomData = new GenerateRoomDataCommand();
         public static CommandBase CreateArticle = new CreateArticleCommand();
 
-        private static PropertyInfo [] properties;
+        private static FieldInfo [] fields;
 
         static ProjectCommands()
         {
-            properties = typeof(ProjectCommands).GetProperties(BindingFlags.Static | BindingFlags.Public);
+            fields = typeof(ProjectCommands).GetFields(BindingFlags.Static | BindingFlags.Public);
         }
 
         public static void UpdateCanExecute()
         {
-            foreach(var prop in properties)
+            foreach(var field in fields)
             {
-                if(prop.GetValue(null) is CommandBase command)
+                if(field.GetValue(null) is CommandBase command)
                 {
                     command.UpdateCanExecute();
                 }

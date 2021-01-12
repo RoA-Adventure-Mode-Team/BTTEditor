@@ -12,7 +12,7 @@ namespace RivalsAdventureEditor.DrawingObjects
     public class EditorCanvas : FrameworkElement
     {
         private VisualCollection _children;
-        private List<Obj> _articles = new List<Obj>();
+        private List<Article> _articles = new List<Article>();
         private DepthComparer comparer;
 
         public EditorCanvas()
@@ -26,7 +26,7 @@ namespace RivalsAdventureEditor.DrawingObjects
             _children.Add(visual);
         }
 
-        public void InsertArticle(Obj article)
+        public void InsertArticle(Article article)
         {
             var index = _articles.BinarySearch(article, comparer);
             if (index < 0)
@@ -37,7 +37,7 @@ namespace RivalsAdventureEditor.DrawingObjects
             _children.Insert(index + 1, art);
         }
 
-        public void RemoveArticle(Obj article)
+        public void RemoveArticle(Article article)
         {
             _articles.Remove(article);
             for(int i = 0; i < _children.Count; i++)
@@ -61,9 +61,9 @@ namespace RivalsAdventureEditor.DrawingObjects
         }
     }
 
-    public class DepthComparer : IComparer<Obj>
+    public class DepthComparer : IComparer<Article>
     {
-        public int Compare(Obj x, Obj y)
+        public int Compare(Article x, Article y)
         {
             return x.Depth.CompareTo(y.Depth);
         }

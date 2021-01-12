@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RivalsAdventureEditor": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

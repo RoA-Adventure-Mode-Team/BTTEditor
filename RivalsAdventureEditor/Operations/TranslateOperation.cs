@@ -10,7 +10,7 @@ namespace RivalsAdventureEditor.Operations
 {
     public class TranslateOperation : OperationBase
     {
-        public Obj Obj { get; set; }
+        public Article Obj { get; set; }
         public float StartX { get; set; }
         public float StartY { get; set; }
         public float EndX { get; set; }
@@ -20,9 +20,9 @@ namespace RivalsAdventureEditor.Operations
         public int CellX { get; set; }
         public int CellY { get; set; }
 
-        public override string Parameter => $"{Obj.Article.ToString()}({Obj.Name}), Cell ({CellX}, {CellY}), Pos ({EndX}, {EndY})";
+        public override string Parameter => $"{Obj.ArticleNum.ToString()}({Obj.Name}), Cell ({CellX}, {CellY}), Pos ({EndX}, {EndY})";
 
-        public TranslateOperation(Project project, Obj obj, float x, float y) : base(project)
+        public TranslateOperation(Project project, Article obj, float x, float y) : base(project)
         {
             StartX = obj.X;
             StartY = obj.Y;

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace RivalsAdventureEditor.Data
 {
     [JsonObject()]
-    class Terrain : Obj
+    class Terrain : Article
     {
         public Terrain()
         {

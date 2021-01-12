@@ -1,45 +1,17 @@
 #pragma once
 #include <map>
 #include <functional>
+#include "IRenderElement.h"
 
+struct Article;
 class CRenderer;
 
 struct TextureData
 {
-  LPDIRECT3DTEXTURE9 tex;
+  ID3D11Texture2D* tex;
   int frames;
   int width;
   int height;
-};
-
-struct Vector2
-{
-  double x;
-  double y;
-};
-
-struct Article
-{
-  LPSTR sprite;
-  Vector2 translate;
-  Vector2 scale;
-  float depth;
-  int color;
-};
-
-struct Line
-{
-  Line(D3DXVECTOR2 start, D3DXVECTOR2 end, float _width, int _color) :
-    line{ start, end },
-    width(_width),
-    color(_color) { }
-  D3DXVECTOR2 line[2];
-  float width;
-  int color;
-};
-
-struct strequal : std::binary_function <LPWSTR, LPWSTR, bool> {
-  bool operator() (LPWSTR x, LPWSTR y) const { return lstrcmpW(x, y) > 0; }
 };
 
 class CRendererManager
@@ -55,10 +27,10 @@ public:
   void SetNumDesiredSamples(UINT uNumSamples);
   void SetAdapter(POINT screenSpacePoint);
   void SetCameraTransform(D3DXMATRIX mat);
-  void StartDraw();
-  void DrawArticle(Article art);
-  void DrawLine(Vector2 start, Vector2 end, int color, float width);
-  HRESULT RegisterTexture(const LPSTR key, const LPWSTR fname, int frames);
+  void PushArticles(Article* articles, int count);
+  void PushLines(Line* lines, int count);
+  void PushTilemaps(Tilemap* tilemaps, int count);
+  HRESULT RegisterTexture(const LPSTR key, const LPWSTR fname, int frames, TextureData** texture);
 
   HRESULT GetBackBufferNoRef(IDirect3DSurface9** ppSurface);
 
@@ -80,7 +52,7 @@ private:
   UINT m_cAdapters;
   CRenderer** m_rgRenderers;
   CRenderer* m_pCurrentRenderer;
-  std::map<std::string, TextureData> m_textureAtlas;
+  std::map<std::string, TextureData*> m_textureAtlas;
 
   HWND m_hwnd;
 

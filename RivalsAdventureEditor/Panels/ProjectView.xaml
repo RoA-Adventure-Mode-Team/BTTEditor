@@ -16,6 +16,9 @@
         <CommandBinding Command="ApplicationCommands.New"
                         CanExecute="CanCreateRoom"
                         Executed="CreateRoom"/>
+        <CommandBinding Command="ApplicationCommands.Delete"
+                        CanExecute="CanDeleteProject"
+                        Executed="DeleteProject"/>
     </ScrollViewer.CommandBindings>
     <ScrollViewer.Resources>
         <BooleanToVisibilityConverter x:Key="BoolVisConverter"/>
@@ -90,7 +93,7 @@
                                    Visibility="{Binding Unsaved, Converter={StaticResource BoolVisConverter}}"/>
                     </StackPanel>
                     <ToggleButton.ContextMenu>
-                        <ContextMenu>
+                        <ContextMenu Opened="UpdateBindings">
                             <MenuItem Header="Add Room..."
                                       InputGestureText="Ctrl+N"
                                       Command="ApplicationCommands.New"

@@ -13,7 +13,7 @@ namespace RivalsAdventureEditor.DrawingObjects
 {
     public class DrawingArticle : DrawingVisual
     {
-        public Obj Article { get; set; }
+        public Article Article { get; set; }
         public BitmapImage Sprite { get; set; }
         public Vector SpriteOffset { get; set; }
         public Point Translate { get; set; }
@@ -33,7 +33,7 @@ namespace RivalsAdventureEditor.DrawingObjects
             var offset = Scale * (cell_offset + (Offset * ROAAM_CONST.GRID_SIZE) - SpriteOffset);
             var size = new Size(Sprite.Width * Scale, Sprite.Height * Scale);
             // Scale up terrain
-            if (Article.Article == ArticleType.Terrain)
+            if (Article.ArticleNum == ArticleType.Terrain)
                 size = new Size(size.Width * 2, size.Height * 2);
             //Rect area = new Rect(new Point(offset.X + Translate.X, offset.Y + Translate.Y), size);
             //ctx.DrawRectangle(Brushes.White, new Pen(Brushes.Black, 1), area);

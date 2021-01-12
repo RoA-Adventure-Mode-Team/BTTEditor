@@ -14,14 +14,14 @@ namespace RivalsAdventureEditor.Procedures
 {
     public class TranslateProcedure : ProcedureBase
     {
-        public Obj Obj { get; set; }
+        public Article Obj { get; set; }
         public Point StartPoint { get; set; }
         public float StartX { get; set; }
         public float StartY { get; set; }
         public int Axes { get; set; }
         public bool Finished { get; set; }
 
-        public TranslateProcedure(Project project, Obj obj, int axes) : base(project)
+        public TranslateProcedure(Project project, Article obj, int axes) : base(project)
         {
             Obj = obj;
             Axes = axes;

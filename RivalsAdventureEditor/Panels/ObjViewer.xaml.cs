@@ -35,7 +35,7 @@ namespace RivalsAdventureEditor.Panels
         }
 
         public static ObjViewer Instance { get; set; } = null;
-        public Obj SelectedObj { get; set; }
+        public Article SelectedObj { get; set; }
         public int HighlightedPath { get; set; }
 
         public ObjViewer()
@@ -76,7 +76,7 @@ namespace RivalsAdventureEditor.Panels
                 Article.Depth = SelectedObj.Depth;
                 HighlightedPath = -1;
 
-                switch (SelectedObj.Article)
+                switch (SelectedObj.ArticleNum)
                 {
                     case ArticleType.Terrain:
                         Terrain terrain = SelectedObj as Terrain;
@@ -161,7 +161,7 @@ namespace RivalsAdventureEditor.Panels
         {
             if (SelectedObj != null && SelectedObj.Type != collisionTypeBox.SelectedIndex)
             {
-                var op = new ModifyPropertyOperation(ApplicationSettings.Instance.ActiveProject, SelectedObj, nameof(Obj.Type), SelectedObj.Type, collisionTypeBox.SelectedIndex);
+                var op = new ModifyPropertyOperation(ApplicationSettings.Instance.ActiveProject, SelectedObj, nameof(Data.Article.Type), SelectedObj.Type, collisionTypeBox.SelectedIndex);
                 ApplicationSettings.Instance.ActiveProject.ExecuteOp(op);
             }
         }
@@ -201,7 +201,7 @@ namespace RivalsAdventureEditor.Panels
                 {
                     if (obj != null && obj.Sprite != window.Sprite)
                     {
-                        var op = new ModifyPropertyOperation(ApplicationSettings.Instance.ActiveProject, obj, nameof(Obj.Sprite), SelectedObj.Sprite, window.Sprite);
+                        var op = new ModifyPropertyOperation(ApplicationSettings.Instance.ActiveProject, obj, nameof(Data.Article.Sprite), SelectedObj.Sprite, window.Sprite);
                         ApplicationSettings.Instance.ActiveProject.ExecuteOp(op);
                         Article.NoInvoke = true;
                         Article.Sprite = window.Sprite;
@@ -286,7 +286,7 @@ namespace RivalsAdventureEditor.Panels
 
     public class ArticleViewModel : INotifyPropertyChanged
     {
-        public Obj Article { get; set; }
+        public Article Article { get; set; }
         public bool NoInvoke { get; set; } = true;
 
         public int X

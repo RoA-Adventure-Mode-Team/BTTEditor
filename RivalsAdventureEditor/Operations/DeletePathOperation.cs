@@ -14,7 +14,7 @@ namespace RivalsAdventureEditor.Operations
         public Target Obj { get; set; }
         public Point Pos { get; set; }
         int SelectedIndex { get; set; }
-        public override string Parameter => $"{Obj.Article.ToString()}({Obj.Name}), Point {SelectedIndex}";
+        public override string Parameter => $"{Obj.ArticleNum.ToString()}({Obj.Name}), Point {SelectedIndex}";
         public DeletePathOperation(Project project, Target obj, int selectedIndex) : base(project)
         {
             Pos = obj.Path[selectedIndex];

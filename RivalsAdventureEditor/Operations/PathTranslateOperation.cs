@@ -14,7 +14,7 @@ namespace RivalsAdventureEditor.Operations
         public Point StartPos { get; set; }
         public Point EndPos { get; set; }
         int SelectedIndex { get; set; }
-        public override string Parameter => $"{Obj.Article.ToString()}({Obj.Name}), Point {SelectedIndex}, ({EndPos.X}, {EndPos.Y})";
+        public override string Parameter => $"{Obj.ArticleNum.ToString()}({Obj.Name}), Point {SelectedIndex}, ({EndPos.X}, {EndPos.Y})";
 
         public PathTranslateOperation(Project project, Target obj, Point pos, int selectedIndex) : base(project)
         {

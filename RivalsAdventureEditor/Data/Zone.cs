@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace RivalsAdventureEditor.Data
 {
     [JsonObject()]
-    public class Zone : Obj
+    public class Zone : Article
     {
         [ArticleProperty(0)]
         public int EventID { get; set; } = 4;

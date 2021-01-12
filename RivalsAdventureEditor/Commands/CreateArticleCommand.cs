@@ -16,12 +16,12 @@ namespace RivalsAdventureEditor.Commands
     {
         public override bool CanExecute(object parameter)
         {
-            return ApplicationSettings.Instance.ActiveProject != null;
+            return ApplicationSettings.Instance.ActiveRoom != null;
         }
 
         public override void Execute(object parameter)
         {
-            if (ApplicationSettings.Instance.ActiveProject != null)
+            if (ApplicationSettings.Instance.ActiveRoom != null)
             {
                 var dlg = new CreateArticleDialog
                 {

@@ -30,7 +30,7 @@ namespace RivalsAdventureEditor.Windows
         private void OkButton_Click(object sender, RoutedEventArgs e)
         {
             var type = (ArticleType)(articleType.SelectedItem as ComboBoxItem).Tag;
-            Obj obj = null;
+            Article obj = null;
             switch(type)
             {
                 case ArticleType.Terrain:
@@ -46,12 +46,12 @@ namespace RivalsAdventureEditor.Windows
             }
             if (obj == null)
                 return;
-            obj.Article = type;
+            obj.ArticleNum = type;
             var point = RoomEditor.Instance.GetTransform().Transform(new Point(RoomEditor.Instance.ActualWidth / 2, RoomEditor.Instance.ActualHeight / 2));
             // Round to nearest 1/16
             obj.X = (int)point.X / (float)ROAAM_CONST.GRID_SIZE;
             obj.Y = (int)point.Y / (float)ROAAM_CONST.GRID_SIZE;
-            obj.Name = obj.Article.ToString();
+            obj.Name = obj.ArticleNum.ToString();
 
             var op = new CreateArticleOperation(ApplicationSettings.Instance.ActiveProject, obj);
             ApplicationSettings.Instance.ActiveProject.ExecuteOp(op);

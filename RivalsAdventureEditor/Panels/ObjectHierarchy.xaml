@@ -34,7 +34,7 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <DataTemplate x:Key="Obj" DataType="{x:Type data:Obj}">
+        <DataTemplate x:Key="Obj" DataType="{x:Type data:Article}">
             <TextBox Style="{StaticResource RenameTextBox}" 
                     Text="{Binding Name}"
                     IsReadOnly="{Binding Renaming, Converter={StaticResource BoolConverter}}"/>

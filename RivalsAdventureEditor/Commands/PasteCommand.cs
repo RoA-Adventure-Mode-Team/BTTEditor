@@ -34,7 +34,7 @@ namespace RivalsAdventureEditor.Commands
                     using (var reader = new StringReader(text))
                     {
                         JObject obj = JObject.Load(new JsonTextReader(reader));
-                        Obj article;
+                        Article article;
                         ArticleType type = (ArticleType)obj.Value<int>("Article");
                         switch (type)
                         {
@@ -48,7 +48,7 @@ namespace RivalsAdventureEditor.Commands
                                 article = new Target();
                                 break;
                             default:
-                                article = new Obj();
+                                article = new Article();
                                 break;
                         }
                         serializer.Populate(obj.CreateReader(), article);

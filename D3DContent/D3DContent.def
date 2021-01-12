@@ -9,8 +9,6 @@ SetAdapter
 
 RegisterTexture
 StartDraw
-PushSprite
-PushLine
 SetCameraTransform
 
 GetBackBufferNoRef

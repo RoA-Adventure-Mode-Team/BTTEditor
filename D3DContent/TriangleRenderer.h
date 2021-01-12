@@ -13,4 +13,7 @@ protected:
 
 private:
   CTriangleRenderer();
+
+  IDirect3DVertexBuffer9* m_quad_buffer;
+  IDirect3DVertexDeclaration9* m_pVertexDeclaration;
 };

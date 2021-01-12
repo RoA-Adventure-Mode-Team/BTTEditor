@@ -142,7 +142,7 @@ namespace RivalsAdventureEditor
 
         private void TestCrashDialog(object sender, RoutedEventArgs e)
         {
-            (null as Obj).ToString();
+            (null as Article).ToString();
         }
 
         private void CheckWindowOpen(object sender, RoutedEventArgs e)

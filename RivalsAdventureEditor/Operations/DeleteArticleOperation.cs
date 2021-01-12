@@ -10,12 +10,12 @@ namespace RivalsAdventureEditor.Operations
 {
     public class DeleteArticleOperation : OperationBase
     {
-        Obj Article { get; set; }
+        Article Article { get; set; }
         Room Room { get; set; }
         int ArtIndex { get; set; }
-        public override string Parameter => $"{Article.Article.ToString()}({Article.Name})";
+        public override string Parameter => $"{Article.ArticleNum.ToString()}({Article.Name})";
 
-        public DeleteArticleOperation(Project proj, Obj article) : base(proj)
+        public DeleteArticleOperation(Project proj, Article article) : base(proj)
         {
             Article = article;
             Room = ApplicationSettings.Instance.ActiveRoom;

@@ -15,7 +15,7 @@ namespace RivalsAdventureEditor.Operations
         public Point Pos { get; set; }
         int SelectedIndex { get; set; }
 
-        public override string Parameter => $"{Obj.Article.ToString()}({Obj.Name}), Point {SelectedIndex}";
+        public override string Parameter => $"{Obj.ArticleNum}({Obj.Name}), Point {SelectedIndex}";
 
         public AddPathOperation(Project project, Target obj, int selectedIndex, Point pos) : base(project)
         {

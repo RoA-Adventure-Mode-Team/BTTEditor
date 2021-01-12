@@ -11,13 +11,13 @@ namespace RivalsAdventureEditor.Operations
 {
     public class ModifyPropertyOperation : OperationBase
     {
-        Obj Obj { get; set; }
+        Article Obj { get; set; }
         PropertyInfo Property { get; set; }
         object Value { get; set; }
         object OldValue { get; set; }
-        public override string Parameter => $"{Obj.Article.ToString()}({Obj.Name}), {Property.Name}: {Value.ToString()}";
+        public override string Parameter => $"{Obj.ArticleNum.ToString()}({Obj.Name}), {Property.Name}: {Value.ToString()}";
 
-        public ModifyPropertyOperation(Project proj, Obj obj, string property, object oldvalue, object value) : base(proj)
+        public ModifyPropertyOperation(Project proj, Article obj, string property, object oldvalue, object value) : base(proj)
         {
             Obj = obj;
             Property = obj.GetType().GetProperty(property);
