@@ -1,4 +1,10 @@
+#include "stdafx.h"
+#include <d2d1.h>
+#include <d2d1helper.h>
+#include <d2d1effects_2.h>
+#include <dxgi1_2.h>
 #include <d3d11.h>
+#include <wincodec.h>
 #include <fstream>
 #include <set>
 #include "SpriteRenderer.h"
@@ -9,22 +15,19 @@ const int C_TILEMAP_SIZE = 128;
 struct CUSTOMVERTEX
 {
   FLOAT x, y, z;
-  DWORD color;
   FLOAT u, v;
 };
 
-CUSTOMVERTEX quad_strip[] = {
- {0,0,1, 0xFFFFFFFF, 0,0}, {1,0,1, 0xFFFFFFFF, 1,0},{0,1,1, 0xFFFFFFFF, 0,1},
- {1,1,1, 0xFFFFFFFF, 1,1}
+CUSTOMVERTEX quad_list[] = {
+ {0,0,0, 0,0}, {1,0,0, 1,0}, {0,1,0, 0,1},
+ {1,0,0, 1,0}, {1,1,0, 1,1}, {0,1,0, 0,1}
 };
 
 D3D11_INPUT_ELEMENT_DESC layout[] =
 {
-  {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+  {"SV_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
     D3D11_INPUT_PER_VERTEX_DATA, 0},
-  {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UINT, 0, 12,
-    D3D11_INPUT_PER_VERTEX_DATA, 0},
-  {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16,
+  {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12,
     D3D11_INPUT_PER_VERTEX_DATA, 0}
 };
 
@@ -37,142 +40,134 @@ struct VS_CONSTANT_BUFFER
 
 struct PS_TILEMAP_CONSTANT_BUFFER
 {
-  DirectX::XMFLOAT2 tilemap_size;
-  int               tileset_span;
+  DirectX::XMINT2   tilemap_size;
   DirectX::XMFLOAT2 tileset_size;
+  int               tileset_span;
+  // Unused
+  DirectX::XMINT3   padding;
 };
 
-void BlobFile(std::ifstream& stream, char** buffer_out, int* size_out)
+SpriteRenderer::SpriteRenderer(HWND hwnd)
 {
-  stream.seekg(0, stream.end);
-  (*size_out) = stream.tellg();
-  stream.seekg(0, stream.beg);
-  (*buffer_out) = new char[*size_out];
-  stream.read(*buffer_out, *size_out);
+  Init(hwnd);
 }
 
 void
-SpriteRenderer::Init()
+SpriteRenderer::Init(HWND hwnd)
 {
-  // INIT: Initialize device
-  D3D_FEATURE_LEVEL featureLevel;
-  DXGI_SWAP_CHAIN_DESC swap_chain_desc;
-  swap_chain_desc.BufferDesc.Width = 0;
-  swap_chain_desc.BufferDesc.Height = 0;
-  swap_chain_desc.BufferDesc.RefreshRate.Numerator = 1;
-  swap_chain_desc.BufferDesc.RefreshRate.Denominator = 60;
-  swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-  swap_chain_desc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-  swap_chain_desc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-  D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_SINGLETHREADED, NULL, 0, D3D11_SDK_VERSION, &swap_chain_desc, &m_swapChain, &m_device, &featureLevel, &m_deviceContext);
+  HRESULT hr;
+  {
+    IFC(CoCreateGuid(&m_guid));
 
-  // INIT: Initialize vertex buffer
-  D3D11_BUFFER_DESC bufferDesc;
-  bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-  bufferDesc.ByteWidth = sizeof(CUSTOMVERTEX) * 4;
-  bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-  bufferDesc.CPUAccessFlags = 0;
-  bufferDesc.MiscFlags = 0;
+    IFC(D2D1CreateFactory(D2D1_FACTORY_TYPE::D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_factory));
+    IFC(CoCreateInstance(CLSID_WICImagingFactory2, NULL, CLSCTX_INPROC_SERVER,  IID_PPV_ARGS(&m_imageFactory)));
 
-  D3D11_SUBRESOURCE_DATA initData;
-  initData.pSysMem = quad_strip;
-  initData.SysMemPitch = 0;
-  initData.SysMemSlicePitch = 0;
+    // Create D3D device
+    ID3D11Device* device;
 
-  m_device->CreateBuffer(&bufferDesc, &initData, &m_vertexBuffer);
+    DXGI_SWAP_CHAIN_DESC swapChainDesc = { 0 };
 
-  UINT stride = sizeof(CUSTOMVERTEX);
-  UINT offset = 0;
-  m_deviceContext->IASetInputLayout(m_spriteLayout);
-  m_deviceContext->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
-  m_deviceContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    swapChainDesc.SampleDesc.Count = 1; // Don't use multi-sampling.
+    swapChainDesc.SampleDesc.Quality = 0;
+    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapChainDesc.BufferCount = 2; // Use double-buffering to minimize latency.
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // All Windows Runtime apps must use this SwapEffect.
+    swapChainDesc.Flags = 0;
+    swapChainDesc.OutputWindow = hwnd;
+    swapChainDesc.Windowed = true;
+    swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    swapChainDesc.BufferDesc.RefreshRate = { 1, 60 };
 
-  // INIT: Initialize shaders
-  std::ifstream shader_stream;
-  char* buffer;
-  int len;
+    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+#if _DEBUG
+    creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+    IFC(D3D11CreateDeviceAndSwapChain(
+      nullptr,                    // specify null to use the default adapter
+      D3D_DRIVER_TYPE_HARDWARE,
+      0,
+      creationFlags,              // optionally set debug and Direct2D compatibility flags
+      NULL,              // list of feature levels this app can support
+      0,   // number of possible feature levels
+      D3D11_SDK_VERSION,
+      &swapChainDesc,
+      &m_swapChain,
+      &device,                    // returns the Direct3D device created
+      NULL,            // returns feature level of device created
+      &m_3dDeviceContext                    // returns the device immediate context
+    ));
 
-  // Vertex Shader
-  shader_stream.open("VertexDumper.cso");
-  BlobFile(shader_stream, &buffer, &len);
-  m_device->CreateVertexShader(buffer, len, NULL, &m_vertexShader);
-  m_device->CreateInputLayout(layout, 3, buffer, len, &m_spriteLayout);
-  delete[] buffer;
-  shader_stream.close();
+    DXGI_SWAP_CHAIN_DESC sDesc;
+    m_swapChain->GetDesc(&sDesc);
+    m_width = sDesc.BufferDesc.Width;
+    m_height = sDesc.BufferDesc.Height;
 
-  // Pixel Shader: Sprites
-  shader_stream.open("Sprite_PixelShader.cso");
-  BlobFile(shader_stream, &buffer, &len);
-  m_device->CreatePixelShader(buffer, len, NULL, &m_spriteShader);
-  delete[] buffer;
-  shader_stream.close();
+    IDXGIDevice* dxgiDevice;
+    IFC(device->QueryInterface(&dxgiDevice));
+    IFC(m_factory->CreateDevice(dxgiDevice, &m_device));
+    IFC(m_device->CreateDeviceContext(
+      D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
+      &m_deviceContext
+    )); 
+    
+    D2D1_BITMAP_PROPERTIES1 bitmapProperties =
+      D2D1::BitmapProperties1(
+        D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)
+      );
 
-  // Pixel Shader: Tilemap
-  shader_stream.open("Tilemap_PixelShader.cso");
-  BlobFile(shader_stream, &buffer, &len);
-  m_device->CreatePixelShader(buffer, len, NULL, &m_tilemapShader);
-  delete[] buffer;
-  shader_stream.close();
+    IDXGISurface* dxgiBackBuffer;
+    IFC(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer)));
+    IFC(m_deviceContext->CreateBitmapFromDxgiSurface(dxgiBackBuffer, NULL, &m_targetBitmap));
+    m_deviceContext->SetTarget(m_targetBitmap);
+    int refs = dxgiBackBuffer->Release();
 
-  // INIT: Constant Buffers
-  D3D11_BUFFER_DESC g_VSDesc, g_PSTilemapDesc;
-  g_VSDesc.ByteWidth = sizeof(VS_CONSTANT_BUFFER);
-  g_VSDesc.Usage = D3D11_USAGE_DYNAMIC;
-  g_VSDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-  g_VSDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-  g_VSDesc.MiscFlags = 0;
-  g_VSDesc.StructureByteStride = 0;
-  m_device->CreateBuffer(&g_VSDesc, NULL, &m_VSConstantBuffer);
-  m_deviceContext->VSSetConstantBuffers(0, 1, &m_VSConstantBuffer);
+    // INIT: Initialize shaders
+    IFC(m_deviceContext->CreateEffect(CLSID_D2D1Crop, &m_cropEffect));
+    IFC(m_deviceContext->CreateEffect(CLSID_D2D1Tint, &m_colorEffect));
 
-  g_PSTilemapDesc.ByteWidth = sizeof(PS_TILEMAP_CONSTANT_BUFFER);
-  g_PSTilemapDesc.Usage = D3D11_USAGE_DYNAMIC;
-  g_PSTilemapDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-  g_PSTilemapDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-  g_PSTilemapDesc.MiscFlags = 0;
-  g_PSTilemapDesc.StructureByteStride = 0;
-  m_device->CreateBuffer(&g_PSTilemapDesc, NULL, &m_PSTilemapConstantBuffer);
-  m_deviceContext->PSSetConstantBuffers(0, 1, &m_PSTilemapConstantBuffer);
+    m_colorEffect->SetInputEffect(0, m_cropEffect);
 
-  // INIT: Sampler State
-  D3D11_SAMPLER_DESC samplerDesc;
-  samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-  samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-  samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-
-  m_device->CreateSamplerState(&samplerDesc, &m_samplerState);
-  // Set both samplers to the same sampler state
-  m_deviceContext->PSSetSamplers(0, 1, &m_samplerState);
-  m_deviceContext->PSSetSamplers(1, 1, &m_samplerState);
-
-  // INIT: Tilemap texture
-  D3D11_TEXTURE2D_DESC texture_desc;
-  texture_desc.Width = C_TILEMAP_SIZE;
-  texture_desc.Height = C_TILEMAP_SIZE;
-  texture_desc.MipLevels = 0;
-  texture_desc.Format = DXGI_FORMAT_R32_SINT;
-  texture_desc.SampleDesc.Count = 1;
-  texture_desc.Usage = D3D11_USAGE_DYNAMIC;
-  texture_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-  texture_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-  texture_desc.MiscFlags = 0;
-
-  m_device->CreateTexture2D(&texture_desc, NULL, &m_tilemapTex);
-
-  // INIT: Resource Views
-  m_device->CreateShaderResourceView(m_tilemapTex, NULL, &m_tilemapTexView);
-  m_deviceContext->PSSetShaderResources(1, 1, &m_tilemapTexView);
+    D3D11_SHADER_RESOURCE_VIEW_DESC rs_desc;;
+    rs_desc.Format = DXGI_FORMAT_R8_SINT;
+    rs_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    rs_desc.Texture2D.MipLevels = 1;
+    rs_desc.Texture2D.MostDetailedMip = 0;
+  }
+  return;
+Cleanup:
+  throw(hr);
 }
-
-void
-SpriteRenderer::PrepareDraw()
+HRESULT
+SpriteRenderer::Resize(int width, int height)
 {
-  m_deviceContext->VSSetShader(m_vertexShader, nullptr, 0);
+  HRESULT hr = S_OK;
+  {
+    m_deviceContext->SetTarget(NULL);
+    int refs = m_targetBitmap->Release();
+
+    IFC(m_swapChain->ResizeBuffers(2, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
+    m_width = width;
+    m_height = height;
+
+    IDXGISurface* dxgiBackBuffer;
+    IFC(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer)));
+    IFC(m_deviceContext->CreateBitmapFromDxgiSurface(dxgiBackBuffer, NULL, &m_targetBitmap));
+    m_deviceContext->SetTarget(m_targetBitmap);
+    refs = dxgiBackBuffer->Release();
+  }
+Cleanup:
+  return hr;
 }
 
 void 
 SpriteRenderer::Render(Article* articles, int art_count, Line* lines, int line_count, Tilemap* tilemaps, int tilemap_count)
 {
+  m_deviceContext->BeginDraw();
+
+  static D2D1_COLOR_F ClearColor = { 0.5f, 0.5f, 0.5f, 1.0f };
+  m_deviceContext->Clear(ClearColor);
+
   // Declare an inline comparison function
   auto depth_less = [](IRenderElement* a, IRenderElement* b) { return a->depth > b->depth; };
   // Create a sorted multiset using this comparison function
@@ -209,88 +204,150 @@ SpriteRenderer::Render(Article* articles, int art_count, Line* lines, int line_c
     }
   }
 
-  m_swapChain->Present(0, 0);
+  D2D1_TAG tag1, tag2;
+  HRESULT hr = m_deviceContext->EndDraw(&tag1, &tag2);
+
+  hr = m_swapChain->Present(1, 0);
 }
 
 void
 SpriteRenderer::RenderArticle(Article* article)
 {
-  m_deviceContext->PSSetShader(m_spriteShader, nullptr, 0);
+  HRESULT hr;
+  {
+    D2D1_MATRIX_3X2_F transmat, scalemat, transform;
+    transmat = D2D1::Matrix3x2F::Translation(article->translate.x, article->translate.y);
+    scalemat = D2D1::Matrix3x2F::Scale(article->scale.x, article->scale.y);
+    transform = scalemat * transmat;
+    m_deviceContext->SetTransform(transform * m_cameraTrans);
 
-  DirectX::XMMATRIX transmat, scalemat, transform;
-  transmat = DirectX::XMMatrixTranslation(article->translate.x, article->translate.y, 1);
-  scalemat = DirectX::XMMatrixScaling(article->scale.x * article->texture->width, article->scale.y * article->texture->height, 1);
-  transform = scalemat * transmat;
-
-  VS_CONSTANT_BUFFER VSConstData;
-  VSConstData.mWorldView = m_cameraTrans;
-  VSConstData.mWorld = transform;
-  VSConstData.fColor = DirectX::XMFLOAT4((article->color & 0x00FF0000) / 255.0f, (article->color & 0x0000FF00) / 255.0f, (article->color & 0x000000FF) / 255.0f, (article->color & 0xFF000000) / 255.0f);
-  m_deviceContext->UpdateSubresource(m_VSConstantBuffer, 0, NULL, &VSConstData, 0, 0);
-
-  m_device->CreateShaderResourceView(article->texture->tex, NULL, &m_textureView);
-  m_deviceContext->PSSetShaderResources(0, 1, &m_textureView);
-
-  m_deviceContext->Draw(4, 0);
-  m_textureView->Release();
+    m_cropEffect->SetInput(0, article->texture->tex);
+    IFC(m_cropEffect->SetValue(D2D1_CROP_PROP_RECT, D2D1::RectF(0.0, 0.0, article->texture->width, article->texture->height)));
+    IFC(m_colorEffect->SetValue(D2D1_TINT_PROP_COLOR, D2D1_VECTOR_4F{ ((article->color & 0x00FF0000) >> 16) / 255.0f, ((article->color & 0x0000FF00) >> 8) / 255.0f, (article->color & 0x000000FF) / 255.0f, ((article->color & 0xFF000000) >> 24) / 255.0f }));
+    m_deviceContext->DrawImage(m_colorEffect, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
+  }
+Cleanup:
+  hr = hr;
 }
 
 void 
 SpriteRenderer::RenderLine(Line* line)
 {
-  m_deviceContext->PSSetShader(m_spriteShader, nullptr, 0);
+  HRESULT hr = S_OK;
+  {
+    ID2D1SolidColorBrush* pBrush;
+    IFC(m_deviceContext->CreateSolidColorBrush(
+      D2D1::ColorF(((line->color & 0x00FF0000) >> 16) / 255.0f, ((line->color & 0x0000FF00) >> 8) / 255.0f, (line->color & 0x000000FF) / 255.0f, ((line->color & 0xFF000000) >> 24) / 255.0f),
+      &pBrush
+    ));
 
-  Vector2 lineVec = { line->end.x - line->start.x, line->start.y - line->end.y };
-  float len = sqrt(lineVec.x * lineVec.x + lineVec.y * lineVec.y);
-  float rot = acos(lineVec.x / len);
-  DirectX::XMMATRIX lengthWidth, offset, rotation, transmat, transform;
-  lengthWidth = DirectX::XMMatrixScaling(len, line->width, 1);
-  offset = DirectX::XMMatrixTranslation(len / 2, 0, 0);
-  rotation = DirectX::XMMatrixRotationZ(rot);
-  transmat = DirectX::XMMatrixTranslation(line->start.x, line->start.y, 1);
-  transform = transmat * rotation * offset * lengthWidth;
-
-  VS_CONSTANT_BUFFER VSConstData;
-  VSConstData.mWorldView = m_cameraTrans;
-  VSConstData.mWorld = transform;
-  VSConstData.fColor = DirectX::XMFLOAT4((line->color & 0x00FF0000) / 255.0f, (line->color & 0x0000FF00) / 255.0f, (line->color & 0x000000FF) / 255.0f, (line->color & 0xFF000000) / 255.0f);
-  m_deviceContext->UpdateSubresource(m_VSConstantBuffer, 0, NULL, &VSConstData, 0, 0);
-
-  // Set a NULL texture (may have to do something else this probably crashes)
- /* m_device->CreateShaderResourceView(NULL, NULL, &m_textureView);
-  m_deviceContext->PSSetShaderResources(0, 1, &m_textureView);
-
-  m_deviceContext->Draw(4, 0);
-  m_textureView->Release();*/
-
+    m_deviceContext->SetTransform(m_cameraTrans);
+    m_deviceContext->DrawLine(D2D1_POINT_2F{ (float)line->start.x, (float)line->start.y }, D2D1_POINT_2F{ (float)line->end.x, (float)line->end.y }, pBrush, line->width);
+  }
+Cleanup:
+  hr = hr;
 }
 
 void
 SpriteRenderer::RenderTilemap(Tilemap* tilemap)
 {
-  m_deviceContext->PSSetShader(m_tilemapShader, nullptr, 0);
-  m_deviceContext->UpdateSubresource(m_tilemapTex, 0, NULL, tilemap->map, C_TILEMAP_SIZE, 0);
+  HRESULT hr = S_OK;
+  {
+    int x_start = (-m_cameraTrans.dx / m_cameraTrans.m11 - tilemap->translate.x) / (tilemap->tile_width * tilemap->scale.x);
+    int y_start = (-m_cameraTrans.dy / m_cameraTrans.m22 - tilemap->translate.y) / (tilemap->tile_height * tilemap->scale.y);
+    if (x_start < 0)
+      x_start = 0;
+    if (y_start < 0)
+      y_start = 0;
+    int x_end = ((-m_cameraTrans.dx + m_width) / m_cameraTrans.m11 - (float)tilemap->translate.x + tilemap->tile_width * tilemap->scale.x) / (tilemap->tile_width * tilemap->scale.x);
+    int y_end = ((-m_cameraTrans.dy + m_height) / m_cameraTrans.m22 - (float)tilemap->translate.y + tilemap->tile_height * tilemap->scale.y) / (tilemap->tile_height * tilemap->scale.y);
+    if (x_end > C_TILEMAP_SIZE)
+      x_end = C_TILEMAP_SIZE;
+    if (y_end > C_TILEMAP_SIZE)
+      y_end = C_TILEMAP_SIZE;
 
-  DirectX::XMMATRIX transmat, scalemat, transform;
-  transmat = DirectX::XMMatrixTranslation(tilemap->translate.x, tilemap->translate.y, 1);
-  scalemat = DirectX::XMMatrixScaling(C_TILEMAP_SIZE * tilemap->tile_width, C_TILEMAP_SIZE * tilemap->tile_height, 1);
-  transform = scalemat * transmat;
+    D2D1_MATRIX_3X2_F scalemat = D2D1::Matrix3x2F::Scale(tilemap->scale.x, tilemap->scale.y);
 
-  VS_CONSTANT_BUFFER VSConstData;
-  VSConstData.mWorldView = m_cameraTrans;
-  VSConstData.mWorld = transform;
-  VSConstData.fColor = DirectX::XMFLOAT4(1, 1, 1, 1);
-  m_deviceContext->UpdateSubresource(m_VSConstantBuffer, 0, NULL, &VSConstData, 0, 0);
+    for (int y = y_start; y < y_end; y++)
+    {
+      for (int x = x_start; x < x_end; x++)
+      {
+        int tile = tilemap->map[x + y * C_TILEMAP_SIZE];
+        if (tile)
+        {
+          tile = tile - 1;
+          int tileset_x = (tile % (tilemap->texture->width / tilemap->tile_width)) * tilemap->tile_width;
+          int tileset_y = (tile / (tilemap->texture->width / tilemap->tile_width)) * tilemap->tile_height;
 
-  PS_TILEMAP_CONSTANT_BUFFER PSConstData;
-  PSConstData.tilemap_size = { 1.0f / C_TILEMAP_SIZE, 1.0f / C_TILEMAP_SIZE };
-  PSConstData.tileset_span = tilemap->texture->width / tilemap->tile_width;
-  PSConstData.tileset_size = { 1.0f / tilemap->tile_width, 1.0f / tilemap->tile_height };
-  m_deviceContext->UpdateSubresource(m_PSTilemapConstantBuffer, 0, NULL, &PSConstData, 0, 0);
+          D2D1_MATRIX_3X2_F transmat;
+          transmat = D2D1::Matrix3x2F::Translation(tilemap->translate.x + x * tilemap->tile_width - tileset_x, tilemap->translate.y + y * tilemap->tile_height - tileset_y);
+          m_deviceContext->SetTransform(transmat * scalemat * m_cameraTrans);
 
-  m_device->CreateShaderResourceView(tilemap->texture->tex, NULL, &m_textureView);
-  m_deviceContext->PSSetShaderResources(0, 1, &m_textureView);
+          m_cropEffect->SetInput(0, tilemap->texture->tex);
+          IFC(m_cropEffect->SetValue(D2D1_CROP_PROP_RECT, D2D1::RectF(tileset_x, tileset_y, tileset_x + tilemap->tile_width, tileset_y + tilemap->tile_height)));
+          IFC(m_colorEffect->SetValue(D2D1_TINT_PROP_COLOR, D2D1_VECTOR_4F{ 1.0f, 1.0f, 1.0f, 1.0f }));
 
-  m_deviceContext->Draw(4, 0);
-  m_textureView->Release();
+          m_deviceContext->DrawImage(m_colorEffect, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
+        }
+      }
+    }
+  }
+Cleanup:
+  hr = hr;
+}
+
+
+HRESULT SpriteRenderer::RegisterTexture(const LPSTR key, const LPWSTR fname, int frames, TextureData** texture)
+{
+  HRESULT hr = S_OK;
+  {
+    IWICBitmapDecoder* pDecoder = NULL;
+    IWICBitmapFrameDecode* pSource = NULL;
+    IWICStream* pStream = NULL;
+    IWICFormatConverter* pConverter = NULL;
+    IWICBitmapScaler* pScaler = NULL;
+    ID2D1Bitmap* pBitmap;
+
+    IFC(m_imageFactory->CreateDecoderFromFilename(
+      fname,
+      NULL,
+      GENERIC_READ,
+      WICDecodeMetadataCacheOnLoad,
+      &pDecoder
+    ));
+    IFC(pDecoder->GetFrame(0, &pSource));
+    IFC(m_imageFactory->CreateFormatConverter(&pConverter));
+    IFC(pConverter->Initialize(
+      pSource,
+      GUID_WICPixelFormat32bppPBGRA,
+      WICBitmapDitherTypeNone,
+      NULL,
+      0.f,
+      WICBitmapPaletteTypeMedianCut
+    ));
+    IFC(m_deviceContext->CreateBitmapFromWicBitmap(
+      pConverter,
+      NULL,
+      &pBitmap
+    ));
+
+    D2D1_SIZE_U size = pBitmap->GetPixelSize();
+    TextureData* data = new TextureData();
+    data->frames = frames;
+    data->tex = pBitmap;
+    data->width = size.width / frames;
+    data->height = size.height;
+    if (m_textureAtlas.find(key) == m_textureAtlas.end())
+      m_textureAtlas.insert(std::pair<std::string, TextureData*>(key, data));
+    else
+    {
+      delete  m_textureAtlas[key];
+      m_textureAtlas[key] = data;
+    }
+    (*texture) = data;
+  }
+
+Cleanup:
+
+  return hr;
 }

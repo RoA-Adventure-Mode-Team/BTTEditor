@@ -45,12 +45,6 @@ struct Tilemap : IRenderElement
   int tile_width;
   int tile_height;
   Vector2 translate;
-  int** map;
-};
-
-namespace RenderElement
-{
-  void RenderArticle(ID3D11Device* device, Article *art);
-  void RenderLine(ID3D11Device* device, Line* line);
-  void RenderTilemap(ID3D11Device* device, CRenderer* renderer, Tilemap* tilemap);
+  int* map;
+  Vector2 scale;
 };

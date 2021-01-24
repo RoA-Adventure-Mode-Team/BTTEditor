@@ -47,6 +47,7 @@
     <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="7.22.2.2" />
     <PackageReference Include="Magick.NET.SystemDrawing" Version="2.0.8" />
     <PackageReference Include="Magick.NET.SystemWindowsMedia" Version="3.0.2" />
+    <PackageReference Include="Microsoft.Wpf.Interop.DirectX-x86" Version="0.9.0-beta-22856" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="RestSharp" Version="106.11.7" />
   </ItemGroup>

@@ -2,15 +2,10 @@ LIBRARY "D3DContent"
 
 EXPORTS
 
-SetSize
-SetAlpha
-SetNumDesiredSamples
-SetAdapter
-
+Init
 RegisterTexture
-StartDraw
 SetCameraTransform
+SetSize
 
-GetBackBufferNoRef
 Render
 Destroy

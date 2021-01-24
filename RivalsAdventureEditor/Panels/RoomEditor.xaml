@@ -11,15 +11,10 @@
         MouseUp="OnMouseUp"
         MouseWheel="OnMouseWheel"
         KeyDown="OnKeyDown"
-        LayoutUpdated="OnLayoutUpdate"
         mc:Ignorable="d" 
         xmlns:cmd="clr-namespace:RivalsAdventureEditor.Commands"
-        xmlns:i="clr-namespace:System.Windows.Interop;assembly=PresentationCore"
+        xmlns:DXExtensions="clr-namespace:Microsoft.Wpf.Interop.DirectX;assembly=Microsoft.Wpf.Interop.DirectX"
         x:Name="Self"
         d:DesignHeight="450" d:DesignWidth="800">
-    <Image x:Name="imgelt">
-        <Image.Source>
-            <i:D3DImage x:Name="d3dimg"/>
-        </Image.Source>
-    </Image>
+    <Border x:Name="windowBorder"/>
 </Grid>
