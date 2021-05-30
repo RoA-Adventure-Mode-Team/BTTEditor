@@ -3,6 +3,7 @@
 
 struct TextureData;
 class CRenderer;
+class ID2D1SolidColorBrush;
 
 struct Vector2
 {
@@ -29,6 +30,8 @@ struct Article : IRenderElement
   Vector2 translate;
   Vector2 scale;
   int color;
+  Vector2 cropStart;
+  Vector2 cropEnd;
 };
 
 struct Line : IRenderElement
@@ -36,7 +39,7 @@ struct Line : IRenderElement
   Vector2 start;
   Vector2 end;
   float width;
-  int color;
+  ID2D1SolidColorBrush *color;
 };
 
 struct Tilemap : IRenderElement

@@ -17,6 +17,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Xceed.Wpf.Toolkit;
 using System.Threading;
+using Xceed.Wpf.AvalonDock.Layout;
 
 namespace RivalsAdventureEditor.Panels
 {
@@ -67,6 +68,10 @@ namespace RivalsAdventureEditor.Panels
                 Article.Article = SelectedObj;
                 Article.NoInvoke = true;
 
+                headerGrid.Visibility = Visibility.Visible;
+                Article.Name = SelectedObj.Name;
+
+                positionLabel.Visibility = Visibility.Visible;
                 positionGrid.Visibility = Visibility.Visible;
                 Article.X = (int)(SelectedObj.X * 16);
                 Article.Y = (int)(SelectedObj.Y * 16);
@@ -98,12 +103,13 @@ namespace RivalsAdventureEditor.Panels
                         break;
                     case ArticleType.Zone:
                         Zone zone = SelectedObj as Zone;
+                        sizeBox.Visibility = Visibility.Visible;
                         resizeGrid.Visibility = Visibility.Visible;
                         Article.TriggerWidth = zone.TriggerWidth;
                         Article.TriggerHeight = zone.TriggerHeight;
                         break;
                     case ArticleType.Target:
-                        var targ = SelectedObj as Target;
+                        Target targ = SelectedObj as Target;
                         spriteName.Visibility = Visibility.Visible;
                         spriteNameBox.Visibility = Visibility.Visible;
                         Article.Sprite = targ.Sprite;
@@ -129,6 +135,12 @@ namespace RivalsAdventureEditor.Panels
                         {
 
                         }
+                        break;
+                    case ArticleType.Tilemap:
+                        Tilemap tilemap = SelectedObj as Tilemap;
+                        editTilemapButton.Visibility = Visibility.Visible;
+                        editTilemapButton.Content = (RoomEditor.Instance.Overlay.Visibility == Visibility.Visible) ? "Stop Editing Tilemap" : "Edit Tilemap";
+                        tilesetEditor.Visibility = Visibility.Visible;
                         break;
                 }
 
@@ -282,6 +294,14 @@ namespace RivalsAdventureEditor.Panels
             var index = targetSpeedList.ItemContainerGenerator.IndexFromContainer((sender as FrameworkElement).TemplatedParent);
             HighlightedPath = index;
         }
+
+        private void EditTilemapClicked(object sender, RoutedEventArgs e)
+        {
+            RoomEditor.Instance.Overlay.Visibility = RoomEditor.Instance.Overlay.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            Update();
+
+            TilesetEditor.Instance.Update();
+        }
     }
 
     public class ArticleViewModel : INotifyPropertyChanged
@@ -289,6 +309,17 @@ namespace RivalsAdventureEditor.Panels
         public Article Article { get; set; }
         public bool NoInvoke { get; set; } = true;
 
+        public string Name
+        {
+            get { return _name; }
+            set
+            {
+                var temp = _name;
+                _name = value;
+                OnPropertyChanged(temp, _name);
+            }
+        }
+        string _name;
         public int X
         {
             get { return (int)(_x * 16); }

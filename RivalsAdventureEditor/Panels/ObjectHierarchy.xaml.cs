@@ -12,6 +12,8 @@ using System.IO;
 using RivalsAdventureEditor.Operations;
 using RivalsAdventureEditor.Data;
 using RivalsAdventureEditor.Windows;
+using System.Globalization;
+using System.Drawing;
 
 namespace RivalsAdventureEditor.Panels
 {
@@ -52,6 +54,44 @@ namespace RivalsAdventureEditor.Panels
                 r.IsActive = r == ApplicationSettings.Instance.ActiveRoom;
             }
             RoomEditor.Instance.Reload();
+        }
+
+        private void BindArticleToSelected(object sender, RoutedEventArgs e)
+        {
+            if(sender is TextBox textBox)
+            {
+                textBox.SetBinding(TextBox.BackgroundProperty, new Binding("SelectedObj") { 
+                    Source = RoomEditor.Instance, 
+                    Converter = new SelectedObjConverter { Article = textBox.DataContext } ,
+                    Mode = BindingMode.OneWay,
+                });
+            }
+        }
+
+        private void SelectArticle(object sender, MouseButtonEventArgs e)
+        {
+            if(sender is TextBox textBox)
+            {
+                RoomEditor.Instance.SelectedObj = textBox.DataContext as Article;
+            }
+        }
+    }
+
+    public class SelectedObjConverter : IValueConverter
+    {
+        public object Article { get; set; }
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == Article)
+                return new SolidBrush(Color.FromArgb(102, 219, 255));
+            else
+                return Brushes.Transparent;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
         }
     }
 }

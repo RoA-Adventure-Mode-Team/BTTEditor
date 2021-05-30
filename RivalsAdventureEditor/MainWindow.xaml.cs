@@ -21,6 +21,7 @@ using RivalsAdventureEditor.Commands;
 using RivalsAdventureEditor.Panels;
 using Xceed.Wpf.AvalonDock.Layout;
 using Xceed.Wpf.AvalonDock.Layout.Serialization;
+using RivalsAdventureEditor.Procedures;
 
 namespace RivalsAdventureEditor
 {
@@ -176,6 +177,53 @@ namespace RivalsAdventureEditor
         {
             var serializer = new XmlLayoutSerializer(dockingManager);
             serializer.Deserialize(new StringReader(DefaultLayout));
+        }
+
+
+        private void SetTilemapProcedure(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement elem && elem.DataContext is TilemapTool tool)
+            {
+                overlay.SetActiveTool(tool);
+            }
+        }
+
+        private void OnKeyDown(object sender, KeyEventArgs e)
+        {
+            if(e.Key == Key.D0)
+            {
+                TilesetEditor.Instance.SelectedTile = 9;
+                e.Handled = true;
+                TilesetEditor.Instance.Update();
+            }
+            else if (e.Key >= Key.D1 && e.Key <= Key.D9)
+            {
+                TilesetEditor.Instance.SelectedTile = (e.Key - Key.D1);
+                e.Handled = true;
+                TilesetEditor.Instance.Update();
+            }
+            else if(e.Key == Key.NumPad0)
+            {
+                TilesetEditor.Instance.SelectedTile = 9;
+                e.Handled = true;
+                TilesetEditor.Instance.Update();
+            }
+            else if (e.Key >= Key.NumPad1 && e.Key <= Key.NumPad9)
+            {
+                TilesetEditor.Instance.SelectedTile = e.Key - Key.NumPad1;
+                e.Handled = true;
+                TilesetEditor.Instance.Update();
+            }
+            else if (e.Key == Key.D)
+            {
+                overlay.SetActiveTool(TilemapOverlay.PaintTool);
+            }
+            else if (e.Key == Key.R)
+            {
+                overlay.SetActiveTool(TilemapOverlay.RectangleTool);
+            }
+            else
+                base.OnKeyDown(e);
         }
     }
 }

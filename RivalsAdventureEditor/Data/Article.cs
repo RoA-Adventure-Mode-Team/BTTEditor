@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.ComponentModel;
 using Newtonsoft.Json;
+using System.Windows;
+using RivalsAdventureEditor.Panels;
 
 namespace RivalsAdventureEditor.Data
 {
@@ -56,7 +58,7 @@ namespace RivalsAdventureEditor.Data
         [JsonIgnore]
         public System.Windows.Point RealPoint
         {
-            get { return new System.Windows.Point(X * ROAAM_CONST.GRID_SIZE - CellX * ROAAM_CONST.CELL_WIDTH, Y * ROAAM_CONST.GRID_SIZE + CellY * ROAAM_CONST.CELL_HEIGHT); }
+            get { return new System.Windows.Point(X * ROAAM_CONST.GRID_SIZE + CellX * ROAAM_CONST.CELL_WIDTH, Y * ROAAM_CONST.GRID_SIZE + CellY * ROAAM_CONST.CELL_HEIGHT); }
         }
 
         [JsonIgnore]
@@ -84,6 +86,36 @@ namespace RivalsAdventureEditor.Data
         public void OnPropertyChanged([CallerMemberName]string property = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
+        }
+
+        public virtual bool ContainsPoint(Point point)
+        {
+            return SpriteContainsPoint(new Point(1, 1), point);
+        }
+
+        protected bool SpriteContainsPoint(Point scale, Point point)
+        {
+            var spr = RoomEditor.Instance.LoadedImages[Sprite];
+            if (!spr.exists)
+                spr = RoomEditor.Instance.LoadedImages["roaam_empty"];
+            var offset = RealPoint - new Point(spr.offset.X, spr.offset.Y);
+            var box = new Rect(new Point(offset.X, offset.Y), new Size((spr.image?.Width ?? 0) * scale.X, (spr.image?.Height ?? 0) * scale.Y));
+            if (box.Contains(point))
+            {
+                if (spr.image == null)
+                    return true;
+                else
+                {
+                    var sprPoint = point - offset;
+                    sprPoint = new Point((sprPoint.X * 1 / scale.X), (sprPoint.Y * 1 / scale.Y));
+                    var px = spr.image.GetPixel((int)sprPoint.X, (int)sprPoint.Y);
+                    if (px.A > 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 

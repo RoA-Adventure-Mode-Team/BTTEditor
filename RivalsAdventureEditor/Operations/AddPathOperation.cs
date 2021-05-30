@@ -37,7 +37,6 @@ namespace RivalsAdventureEditor.Operations
             if (Obj != null)
             {
                 Obj.Path.RemoveAt(SelectedIndex);
-                RoomEditor.Instance.SelectedPath = -1;
                 RoomEditor.Instance.SelectedObj = Obj;
             }
         }

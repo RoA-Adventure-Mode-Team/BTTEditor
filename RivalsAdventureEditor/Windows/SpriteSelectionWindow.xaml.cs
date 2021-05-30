@@ -41,7 +41,11 @@ namespace RivalsAdventureEditor.Windows
                 var match = Regex.Match(shortname, "_strip\\d+");
                 if (match.Success)
                     shortname = shortname.Remove(match.Index);
-                RoomEditor.LoadImage(shortname);
+                if (!RoomEditor.Instance.LoadedImages.ContainsKey(shortname))
+                {
+                    WindowAPI.LoadImage(shortname, RoomEditor.Instance.renderer, out TexData data);
+                    RoomEditor.Instance.LoadedImages.Add(shortname, data);
+                }
                 Sprites.Add(shortname);
             }
         }

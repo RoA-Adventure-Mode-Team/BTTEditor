@@ -16,5 +16,5 @@
         xmlns:DXExtensions="clr-namespace:Microsoft.Wpf.Interop.DirectX;assembly=Microsoft.Wpf.Interop.DirectX"
         x:Name="Self"
         d:DesignHeight="450" d:DesignWidth="800">
-    <Border x:Name="windowBorder"/>
+    <Border Grid.Row="1" x:Name="windowBorder"/>
 </Grid>

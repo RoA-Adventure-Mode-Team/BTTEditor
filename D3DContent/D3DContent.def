@@ -2,10 +2,13 @@ LIBRARY "D3DContent"
 
 EXPORTS
 
-Init
+InitRenderer
+DestroyRenderer
+
+CreateBrush
 RegisterTexture
 SetCameraTransform
 SetSize
 
+PrepareForRender
 Render
-Destroy

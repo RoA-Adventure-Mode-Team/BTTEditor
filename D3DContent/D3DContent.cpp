@@ -19,13 +19,11 @@ BOOL APIENTRY DllMain(HMODULE hModule,
   return TRUE;
 }
 
-static SpriteRenderer* pRenderer = NULL;
-
-extern "C" HRESULT WINAPI Init(HWND hwnd)
+extern "C" HRESULT WINAPI InitRenderer(HWND hwnd, SpriteRenderer **outRenderer)
 {
-  try {
-    if(pRenderer == NULL)
-      pRenderer = new SpriteRenderer(hwnd);
+  try
+  {
+    (*outRenderer) = new SpriteRenderer(hwnd);
     return S_OK;
   }
   catch (HRESULT hr)
@@ -34,7 +32,23 @@ extern "C" HRESULT WINAPI Init(HWND hwnd)
   }
 }
 
-extern "C" HRESULT WINAPI RegisterTexture(LPSTR key, LPWSTR fname, int frames, TextureData **texture)
+extern "C" HRESULT WINAPI DestroyRenderer(SpriteRenderer* pRenderer)
+{
+  delete pRenderer;
+  return S_OK;
+}
+
+extern "C" HRESULT WINAPI CreateBrush(SpriteRenderer * pRenderer, int color, ID2D1SolidColorBrush** brush)
+{
+  HRESULT hr = S_OK;
+
+  hr = pRenderer->CreateBrush(color, brush);
+
+Cleanup:
+  return hr;
+}
+
+extern "C" HRESULT WINAPI RegisterTexture(SpriteRenderer * pRenderer, LPSTR key, LPWSTR fname, int frames, TextureData * *texture)
 {
   HRESULT hr = S_OK;
 
@@ -44,16 +58,13 @@ Cleanup:
   return hr;
 }
 
-extern "C" HRESULT WINAPI SetSize(int width, int height)
+extern "C" HRESULT WINAPI SetSize(SpriteRenderer* pRenderer, int width, int height)
 {
-  if(pRenderer)
-    return pRenderer->Resize(width, height);
-  return S_FALSE;
+  return pRenderer->Resize(width, height);
 }
 
-extern "C" HRESULT WINAPI SetCameraTransform(Vector2 pos, float zoom)
+extern "C" HRESULT WINAPI SetCameraTransform(SpriteRenderer* pRenderer, Vector2 pos, float zoom)
 {
-
   // Transform camera from world coordinates into this stupid rendering coords
   D2D1_MATRIX_3X2_F transmat = D2D1::Matrix3x2F::Translation(pos.x, pos.y);
   D2D1_MATRIX_3X2_F scalemat = D2D1::Matrix3x2F::Scale(zoom, zoom);
@@ -62,15 +73,14 @@ extern "C" HRESULT WINAPI SetCameraTransform(Vector2 pos, float zoom)
   return S_OK;
 }
 
-extern "C" HRESULT WINAPI Render(Article * articles, int count, Line * lines, int line_count, Tilemap * tilemaps, int tilemap_count)
+extern "C" HRESULT WINAPI PrepareForRender(SpriteRenderer* pRenderer)
 {
-  assert(pRenderer);
-  pRenderer->Render(articles, count, lines, line_count, tilemaps, tilemap_count);
+  pRenderer->PrepareForRender();
   return S_OK;
 }
 
-extern "C" void WINAPI Destroy()
+extern "C" HRESULT WINAPI Render(SpriteRenderer* pRenderer, Article * articles, int count, Line * lines, int line_count, Tilemap * tilemaps, int tilemap_count)
 {
-  delete pRenderer;
-  pRenderer = NULL;
+  pRenderer->Render(articles, count, lines, line_count, tilemaps, tilemap_count);
+  return S_OK;
 }

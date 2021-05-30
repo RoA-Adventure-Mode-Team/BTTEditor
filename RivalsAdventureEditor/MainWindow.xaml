@@ -9,6 +9,7 @@
         xmlns:panel="clr-namespace:RivalsAdventureEditor.Panels"
         Loaded="OnLoad"
         Closing="OnClosing"
+        KeyDown="OnKeyDown"
         mc:Ignorable="d"
         AllowsTransparency="False"
         Icon="{StaticResource ProjectIcon}"
@@ -122,7 +123,42 @@
                         <dock:LayoutAnchorable ContentId="RoomEditor" 
                                                Title="Room Editor"
                                                CanClose="False">
-                            <panel:RoomEditor/>
+                            <Grid>
+                                <Grid.Resources>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Margin" Value="4 2 4 2"/>
+                                        <Setter Property="Padding" Value="4 2 4 2"/>
+                                        <EventSetter Event="Click" Handler="SetTilemapProcedure"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Active}" Value="True">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="Foreground" Value="Black"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Resources>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition/>
+                                </Grid.RowDefinitions>
+                                <Border x:Name="tilemapToolkit" BorderBrush="Gray" BorderThickness="1" Padding="2">
+                                    <StackPanel Orientation="Horizontal" Visibility="{Binding Visibility, ElementName=overlay}">
+                                        <Button Content="&#xE70F;" 
+                                                FontFamily="Segoe MDL2 Assets" 
+                                                FontSize="18"
+                                                DataContext="{x:Static panel:TilemapOverlay.PaintTool}"
+                                                ToolTip="Pencil Tool&#xa0;Shortcut: D"/>
+                                        <Button Content="&#xF5A4;"
+                                                FontFamily="Segoe MDL2 Assets"
+                                                FontSize="18"
+                                                ToolTip="Rectangle Tool&#xa0;Shortcut: R"
+                                                DataContext="{x:Static panel:TilemapOverlay.RectangleTool}"/>
+                                    </StackPanel>
+                                </Border>
+                                <panel:RoomEditor Grid.Row="1" Overlay="{Binding ElementName=overlay}"/>
+                                <panel:TilemapOverlay Grid.Row="1" x:Name="overlay" Visibility="Collapsed"/>
+                            </Grid>
                         </dock:LayoutAnchorable>
                     </dock:LayoutAnchorablePane>
                     <dock:LayoutAnchorablePane DockWidth="300">

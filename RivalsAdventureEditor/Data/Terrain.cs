@@ -4,11 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace RivalsAdventureEditor.Data
 {
     [JsonObject()]
-    class Terrain : Article
+    public class Terrain : Article
     {
         public Terrain()
         {
@@ -28,5 +29,10 @@ namespace RivalsAdventureEditor.Data
         }
         [ArticleProperty(-1, ShowInPanel = true)]
         public bool Static { get; set; }
+
+        public override bool ContainsPoint(Point point)
+        {
+            return SpriteContainsPoint(new Point(2, 2), point);
+        }
     }
 }

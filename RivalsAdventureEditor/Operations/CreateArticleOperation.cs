@@ -26,7 +26,6 @@ namespace RivalsAdventureEditor.Operations
             if (ApplicationSettings.Instance.ActiveRoom == Room)
             {
                 RoomEditor.Instance.SelectedObj = Article;
-                RoomEditor.Instance.SelectedPath = -1;
             }
         }
 
@@ -36,7 +35,6 @@ namespace RivalsAdventureEditor.Operations
             if (ApplicationSettings.Instance.ActiveRoom == Room)
             {
                 RoomEditor.Instance.SelectedObj = null;
-                RoomEditor.Instance.SelectedPath = -1;
             }
         }
     }

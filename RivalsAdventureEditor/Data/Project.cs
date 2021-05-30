@@ -218,12 +218,25 @@ namespace RivalsAdventureEditor.Data
                 var room = Rooms[i];
                 sb.Append($"room_add({i + 1}, [\n");
                 Dictionary<Tuple<int, int>, List<Article>> cells = new Dictionary<Tuple<int, int>, List<Article>>();
-                foreach (var obj in room.Objs)
+                int tmaps = 0;
+                foreach (Article obj in room.Objs)
                 {
-                    var key = new Tuple<int, int>(obj.CellX, obj.CellY);
-                    if (!cells.ContainsKey(key))
-                        cells.Add(key, new List<Article>());
-                    cells[key].Add(obj);
+                    if (obj is Tilemap tilemap)
+                    {
+                        foreach (var terrain in tilemap.GetTilemapAsTerrain(tmaps++))
+                        {
+                            if (!cells.ContainsKey(terrain.Item2))
+                                cells.Add(terrain.Item2, new List<Article>());
+                            cells[terrain.Item2].Add(terrain.Item1);
+                        }
+                    }
+                    else
+                    {
+                        var key = new Tuple<int, int>(obj.CellX, obj.CellY);
+                        if (!cells.ContainsKey(key))
+                            cells.Add(key, new List<Article>());
+                        cells[key].Add(obj);
+                    }
                 }
                 for (int j = 0; j < cells.Count; j++)
                 {
@@ -234,16 +247,18 @@ namespace RivalsAdventureEditor.Data
                     for (int n = 0; n < cell.Value.Count; n++)
                     {
                         var obj = cell.Value[n];
-                        sb.Append($"        [{(int)obj.ArticleNum}, {obj.X}, {obj.Y}, {obj.Type}, {obj.Depth}, [");
+                        string baseArgs = $"{(int)obj.ArticleNum}, {obj.X}, {obj.Y}, {obj.Type}, {obj.Depth}";
+                        string args;
+                        string extraArgs = $"{obj.TryGetExtraArg<int>(ExtraArgs.SpawnFlag, 0)}";
+
                         switch (obj.ArticleNum)
                         {
                             case ArticleType.Terrain:
                                 var terrain = obj as Terrain;
-                                if (!string.IsNullOrEmpty(terrain.Sprite))
-                                    sb.Append($"sprite_get(\"{terrain.Sprite}\"), ");
-                                else
-                                    sb.Append("0, ");
-                                sb.Append($"{terrain.AnimationSpeed}, 0, {terrain.StaticInt}, 0, 0, 0, 0");
+                                string sprite = string.IsNullOrEmpty(terrain.Sprite) ? "0" : $"sprite_get(\"{terrain.Sprite}\")";
+
+                                args = $"{sprite}, {terrain.AnimationSpeed}, 0, {terrain.StaticInt}, 0, 0, 0, 0";
+
                                 // Solid object
                                 if (terrain.Type == 2)
                                 {
@@ -253,55 +268,40 @@ namespace RivalsAdventureEditor.Data
                                 break;
                             case ArticleType.Zone:
                                 var zone = obj as Zone;
-                                sb.Append($"{zone.EventID}, {zone.ActiveScene}, {zone.TriggerObjType}, {zone.TriggerPlayer}, {(int)zone.TriggerShape}, {zone.TriggerWidth}, {zone.TriggerHeight}, {zone.TriggerNegative}");
+                                args = $"{zone.EventID}, {zone.ActiveScene}, {zone.TriggerObjType}, {zone.TriggerPlayer}, {(int)zone.TriggerShape}, {zone.TriggerWidth}, {zone.TriggerHeight}, {zone.TriggerNegative}";
                                 break;
                             case ArticleType.Target:
                                 var targ = obj as Target;
-                                StringBuilder moveVel = new StringBuilder();
-                                StringBuilder path = new StringBuilder();
+                                string moveVel;
+                                string path;
+
                                 if (targ.MoveVel.Count == 0)
-                                    moveVel.Append("0");
+                                    moveVel = "0";
                                 else if (targ.MoveVel.Count == 1)
-                                    moveVel.Append(targ.MoveVel[0]);
+                                    moveVel = targ.MoveVel[0].ToString();
                                 else
-                                {
-                                    moveVel.Append("[");
-                                    for (int k = 0; k < targ.MoveVel.Count; k++)
-                                    {
-                                        moveVel.Append(targ.MoveVel[k]);
-                                        if (k != targ.MoveVel.Count - 1)
-                                            moveVel.Append(", ");
-                                    }
-                                    moveVel.Append("]");
-                                }
+                                    moveVel = $"[{string.Join(", ", targ.MoveVel)}]";
+
                                 if (targ.Path.Count == 0)
-                                    path.Append("0");
+                                    path = "0";
                                 else
                                 {
-                                    path.Append("[");
-                                    for (int k = 0; k < targ.Path.Count; k++)
-                                    {
-                                        var offsetX = targ.CellX * ROAAM_CONST.CELL_WIDTH / ROAAM_CONST.GRID_SIZE;
-                                        var offsetY = targ.CellY * ROAAM_CONST.CELL_HEIGHT / ROAAM_CONST.GRID_SIZE;
-                                        path.Append($"[{targ.Path[k].X + offsetX}, {targ.Path[k].Y - offsetY}]");
-                                        if (k != targ.Path.Count - 1)
-                                            path.Append(", ");
-                                    }
-                                    path.Append("]");
+                                    var offsetX = targ.CellX * ROAAM_CONST.CELL_WIDTH / ROAAM_CONST.GRID_SIZE;
+                                    var offsetY = targ.CellY * ROAAM_CONST.CELL_HEIGHT / ROAAM_CONST.GRID_SIZE;
+                                    var offsetPoints = targ.Path.Select(p => new Point(p.X + offsetX, p.Y - offsetY));
+                                    path = $"[{string.Join(", ", offsetPoints)}]";
                                 }
-                                sb.Append($"{targ_count++}, 0, {moveVel.ToString()}, {path.ToString()}, ");
-                                if (!string.IsNullOrEmpty(targ.SpriteOverride) && targ.SpriteOverride != "roaam_target")
-                                    sb.Append($"sprite_get(\"{targ.SpriteOverride}\"), ");
-                                else
-                                    sb.Append("0, ");
-                                if (!string.IsNullOrEmpty(targ.DestroySprite))
-                                    sb.Append($"sprite_get(\"{targ.DestroySprite}\"), ");
-                                else
-                                    sb.Append("0, ");
-                                sb.Append("0, 0");
+
+                                string targSprite = (!string.IsNullOrEmpty(targ.SpriteOverride) && targ.SpriteOverride != "roaam_target") ? $"sprite_get(\"{targ.SpriteOverride}\")" : "0";
+                                string destroy = !string.IsNullOrEmpty(targ.DestroySprite) ? $"sprite_get(\"{targ.DestroySprite}\")" : "0";
+                                args = $"{targ_count++}, 0, {moveVel.ToString()}, {path.ToString()}, {targSprite}, {destroy}, 0, 0";
+                                break;
+                            default:
+                                args = "0, 0, 0, 0, 0, 0, 0, 0";
                                 break;
                         }
-                        sb.Append($"], [{obj.TryGetExtraArg<int>(ExtraArgs.SpawnFlag, 0)}]");
+
+                        sb.Append($"        [{baseArgs}, [{args}], [{extraArgs}]");
                         if (n == cell.Value.Count - 1)
                             sb.Append("]\n");
                         else

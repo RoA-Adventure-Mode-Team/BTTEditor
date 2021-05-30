@@ -4,7 +4,6 @@
 #include <d2d1effects_2.h>
 #include <dxgi1_2.h>
 #include <d3d11.h>
-#include <wincodec.h>
 #include <fstream>
 #include <set>
 #include "SpriteRenderer.h"
@@ -22,6 +21,8 @@ CUSTOMVERTEX quad_list[] = {
  {0,0,0, 0,0}, {1,0,0, 1,0}, {0,1,0, 0,1},
  {1,0,0, 1,0}, {1,1,0, 1,1}, {0,1,0, 0,1}
 };
+
+float dashes[] = { 2.0f, 1.0f };
 
 D3D11_INPUT_ELEMENT_DESC layout[] =
 {
@@ -60,7 +61,6 @@ SpriteRenderer::Init(HWND hwnd)
     IFC(CoCreateGuid(&m_guid));
 
     IFC(D2D1CreateFactory(D2D1_FACTORY_TYPE::D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_factory));
-    IFC(CoCreateInstance(CLSID_WICImagingFactory2, NULL, CLSCTX_INPROC_SERVER,  IID_PPV_ARGS(&m_imageFactory)));
 
     // Create D3D device
     ID3D11Device* device;
@@ -133,6 +133,22 @@ SpriteRenderer::Init(HWND hwnd)
     rs_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     rs_desc.Texture2D.MipLevels = 1;
     rs_desc.Texture2D.MostDetailedMip = 0;
+
+    IFC(CoCreateInstance(CLSID_WICImagingFactory2, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&m_imageFactory)));
+
+    IFC(m_factory->CreateStrokeStyle(
+      D2D1::StrokeStyleProperties(
+        D2D1_CAP_STYLE_FLAT,
+        D2D1_CAP_STYLE_FLAT,
+        D2D1_CAP_STYLE_FLAT,
+        D2D1_LINE_JOIN_MITER,
+        1.0f,
+        D2D1_DASH_STYLE_CUSTOM,
+        0.0f),
+      dashes,
+      ARRAYSIZE(dashes),
+      &m_dashedStroke
+    ));
   }
   return;
 Cleanup:
@@ -160,14 +176,18 @@ Cleanup:
   return hr;
 }
 
-void 
-SpriteRenderer::Render(Article* articles, int art_count, Line* lines, int line_count, Tilemap* tilemaps, int tilemap_count)
+void
+SpriteRenderer::PrepareForRender()
 {
   m_deviceContext->BeginDraw();
 
   static D2D1_COLOR_F ClearColor = { 0.5f, 0.5f, 0.5f, 1.0f };
   m_deviceContext->Clear(ClearColor);
+}
 
+void 
+SpriteRenderer::Render(Article* articles, int art_count, Line* lines, int line_count, Tilemap* tilemaps, int tilemap_count)
+{
   // Declare an inline comparison function
   auto depth_less = [](IRenderElement* a, IRenderElement* b) { return a->depth > b->depth; };
   // Create a sorted multiset using this comparison function
@@ -222,7 +242,7 @@ SpriteRenderer::RenderArticle(Article* article)
     m_deviceContext->SetTransform(transform * m_cameraTrans);
 
     m_cropEffect->SetInput(0, article->texture->tex);
-    IFC(m_cropEffect->SetValue(D2D1_CROP_PROP_RECT, D2D1::RectF(0.0, 0.0, article->texture->width, article->texture->height)));
+    IFC(m_cropEffect->SetValue(D2D1_CROP_PROP_RECT, D2D1::RectF(article->cropStart.x * article->texture->width, article->cropStart.y * article->texture->height, article->cropEnd.x * article->texture->width, article->cropEnd.y * article->texture->height)));
     IFC(m_colorEffect->SetValue(D2D1_TINT_PROP_COLOR, D2D1_VECTOR_4F{ ((article->color & 0x00FF0000) >> 16) / 255.0f, ((article->color & 0x0000FF00) >> 8) / 255.0f, (article->color & 0x000000FF) / 255.0f, ((article->color & 0xFF000000) >> 24) / 255.0f }));
     m_deviceContext->DrawImage(m_colorEffect, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
   }
@@ -235,14 +255,8 @@ SpriteRenderer::RenderLine(Line* line)
 {
   HRESULT hr = S_OK;
   {
-    ID2D1SolidColorBrush* pBrush;
-    IFC(m_deviceContext->CreateSolidColorBrush(
-      D2D1::ColorF(((line->color & 0x00FF0000) >> 16) / 255.0f, ((line->color & 0x0000FF00) >> 8) / 255.0f, (line->color & 0x000000FF) / 255.0f, ((line->color & 0xFF000000) >> 24) / 255.0f),
-      &pBrush
-    ));
-
     m_deviceContext->SetTransform(m_cameraTrans);
-    m_deviceContext->DrawLine(D2D1_POINT_2F{ (float)line->start.x, (float)line->start.y }, D2D1_POINT_2F{ (float)line->end.x, (float)line->end.y }, pBrush, line->width);
+    m_deviceContext->DrawLine(D2D1_POINT_2F{ (float)line->start.x, (float)line->start.y }, D2D1_POINT_2F{ (float)line->end.x, (float)line->end.y }, line->color, line->width, NULL);
   }
 Cleanup:
   hr = hr;
@@ -259,14 +273,18 @@ SpriteRenderer::RenderTilemap(Tilemap* tilemap)
       x_start = 0;
     if (y_start < 0)
       y_start = 0;
-    int x_end = ((-m_cameraTrans.dx + m_width) / m_cameraTrans.m11 - (float)tilemap->translate.x + tilemap->tile_width * tilemap->scale.x) / (tilemap->tile_width * tilemap->scale.x);
-    int y_end = ((-m_cameraTrans.dy + m_height) / m_cameraTrans.m22 - (float)tilemap->translate.y + tilemap->tile_height * tilemap->scale.y) / (tilemap->tile_height * tilemap->scale.y);
+    int x_end = ((-m_cameraTrans.dx + m_width) / m_cameraTrans.m11 - tilemap->translate.x + tilemap->tile_width * tilemap->scale.x) / (tilemap->tile_width * tilemap->scale.x);
+    int y_end = ((-m_cameraTrans.dy + m_height) / m_cameraTrans.m22 - tilemap->translate.y + tilemap->tile_height * tilemap->scale.y) / (tilemap->tile_height * tilemap->scale.y);
     if (x_end > C_TILEMAP_SIZE)
       x_end = C_TILEMAP_SIZE;
     if (y_end > C_TILEMAP_SIZE)
       y_end = C_TILEMAP_SIZE;
 
     D2D1_MATRIX_3X2_F scalemat = D2D1::Matrix3x2F::Scale(tilemap->scale.x, tilemap->scale.y);
+
+
+    m_cropEffect->SetInput(0, tilemap->texture->tex);
+    IFC(m_colorEffect->SetValue(D2D1_TINT_PROP_COLOR, D2D1_VECTOR_4F{ 1.0f, 1.0f, 1.0f, 1.0f }));
 
     for (int y = y_start; y < y_end; y++)
     {
@@ -280,12 +298,9 @@ SpriteRenderer::RenderTilemap(Tilemap* tilemap)
           int tileset_y = (tile / (tilemap->texture->width / tilemap->tile_width)) * tilemap->tile_height;
 
           D2D1_MATRIX_3X2_F transmat;
-          transmat = D2D1::Matrix3x2F::Translation(tilemap->translate.x + x * tilemap->tile_width - tileset_x, tilemap->translate.y + y * tilemap->tile_height - tileset_y);
-          m_deviceContext->SetTransform(transmat * scalemat * m_cameraTrans);
-
-          m_cropEffect->SetInput(0, tilemap->texture->tex);
+          transmat = D2D1::Matrix3x2F::Translation(tilemap->translate.x + (double)x * tilemap->tile_width * tilemap->scale.x - tileset_x * tilemap->scale.x, tilemap->translate.y + (double)y * tilemap->tile_height * tilemap->scale.y - tileset_y * tilemap->scale.y);
+          m_deviceContext->SetTransform(scalemat * transmat * m_cameraTrans);
           IFC(m_cropEffect->SetValue(D2D1_CROP_PROP_RECT, D2D1::RectF(tileset_x, tileset_y, tileset_x + tilemap->tile_width, tileset_y + tilemap->tile_height)));
-          IFC(m_colorEffect->SetValue(D2D1_TINT_PROP_COLOR, D2D1_VECTOR_4F{ 1.0f, 1.0f, 1.0f, 1.0f }));
 
           m_deviceContext->DrawImage(m_colorEffect, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
         }
@@ -296,6 +311,18 @@ Cleanup:
   hr = hr;
 }
 
+HRESULT SpriteRenderer::CreateBrush(int color, ID2D1SolidColorBrush** brush)
+{
+  HRESULT hr;
+  {
+    IFC(m_deviceContext->CreateSolidColorBrush(
+      D2D1::ColorF(((color & 0x00FF0000) >> 16) / 255.0f, ((color & 0x0000FF00) >> 8) / 255.0f, (color & 0x000000FF) / 255.0f, ((color & 0xFF000000) >> 24) / 255.0f),
+      brush
+    ));
+  }
+Cleanup:
+  return hr;
+}
 
 HRESULT SpriteRenderer::RegisterTexture(const LPSTR key, const LPWSTR fname, int frames, TextureData** texture)
 {
@@ -303,18 +330,21 @@ HRESULT SpriteRenderer::RegisterTexture(const LPSTR key, const LPWSTR fname, int
   {
     IWICBitmapDecoder* pDecoder = NULL;
     IWICBitmapFrameDecode* pSource = NULL;
-    IWICStream* pStream = NULL;
     IWICFormatConverter* pConverter = NULL;
-    IWICBitmapScaler* pScaler = NULL;
     ID2D1Bitmap* pBitmap;
 
-    IFC(m_imageFactory->CreateDecoderFromFilename(
-      fname,
-      NULL,
+    HANDLE handle = CreateFileW(fname,
       GENERIC_READ,
+      FILE_SHARE_READ,
+      NULL,
+      OPEN_EXISTING,
+      FILE_ATTRIBUTE_NORMAL,
+      NULL);
+    IFC(m_imageFactory->CreateDecoderFromFileHandle(reinterpret_cast<ULONG_PTR>(handle),
+      NULL,
       WICDecodeMetadataCacheOnLoad,
-      &pDecoder
-    ));
+      &pDecoder));
+
     IFC(pDecoder->GetFrame(0, &pSource));
     IFC(m_imageFactory->CreateFormatConverter(&pConverter));
     IFC(pConverter->Initialize(
@@ -345,6 +375,12 @@ HRESULT SpriteRenderer::RegisterTexture(const LPSTR key, const LPWSTR fname, int
       m_textureAtlas[key] = data;
     }
     (*texture) = data;
+
+
+    pDecoder->Release();
+    pSource->Release();
+    pConverter->Release();
+    CloseHandle(handle);
   }
 
 Cleanup:

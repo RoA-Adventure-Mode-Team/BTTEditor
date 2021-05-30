@@ -20,17 +20,17 @@
         <cnv:BoolToBoolConverter x:Key="BoolConverter" />
 
         <ControlTemplate TargetType="Button" x:Key="SpritePicker">
-            <Border CornerRadius="5"
-                    BorderBrush="Black"
-                    BorderThickness="1.5"
+            <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                    UseLayoutRounding="True"
+                    BorderThickness="1"
                     x:Name="OuterBorder"
                     TextBlock.Foreground="{TemplateBinding Foreground}">
-                <Border CornerRadius="2"
-                        BorderBrush="LightGray"
-                        BorderThickness="4 4 0 0"
+                <Border BorderBrush="LightGray"
+                        Padding="2 2 0 0"
+                        BorderThickness="0 0 2 2"
                         x:Name="InnerBorder"
                         Background="White">
-                    <ContentPresenter Margin="0 -4 0 0" VerticalAlignment="Center" x:Name="ContentHost"/>
+                    <ContentPresenter Margin="4 -4 8 0" VerticalAlignment="Center" x:Name="ContentHost"/>
                 </Border>
             </Border>
             <ControlTemplate.Triggers>
@@ -83,54 +83,94 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Grid Grid.ColumnSpan="2"
-              x:Name="positionGrid">
+        <Border Grid.Row="0"
+                Grid.ColumnSpan="2"
+                Margin="0 2 0 4"
+                Padding="2 6 2 6"
+                x:Name="headerGrid"
+                Background="LightGray">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Label Grid.Column="0" 
+                       FontFamily="Segoe MDL2 Assets"
+                       Content="&#xEA80;"/>
+                <TextBox Text="{Binding Article.Name, ElementName=Self}"
+                         Grid.Column="1"
+                         Margin="0 0 2 0"
+                         FontSize="14"/>
+                <Button FontFamily="Segoe MDL2 Assets"
+                        Margin="2 0 2 0"
+                        FontSize="18"
+                        Content="&#xE74D;"
+                        Grid.Column="2"
+                        ToolTip="Delete"
+                        Command="cmd:ProjectCommands.DeleteCommand"/>
+            </Grid>
+        </Border>
+        <Label Content="Position "
+               x:Name="positionLabel"
+                FontWeight="Bold"
+                Grid.Row="1"
+                Grid.Column="0"/>
+        <Grid x:Name="positionGrid"
+              Grid.Row="1"
+              Grid.Column="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition/>
+                <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Label Content="X: "
-                    FontWeight="Bold"
-                    Grid.Row="0"
-                    Grid.Column="0"/>
+            <Label Content="X "
+                   x:Name="xLabel"
+                   Grid.Row="0"
+                   Grid.Column="0"
+                   Padding="0"
+                   VerticalContentAlignment="Center"/>
             <tool:IntegerUpDown ValueChanged="OnXChanged"
-                                Value="{Binding Article.X, ElementName=Self, Delay=700}"
-                               x:Name="xBox"
-                               Margin="0 2 2 2"
-                               Grid.Row="0"
-                               Grid.Column="1"/>
-            <Label Content="Y: "
-                    FontWeight="Bold"
-                    Grid.Row="0"
-                    Grid.Column="2"/>
+                            Value="{Binding Article.X, ElementName=Self, Delay=700}"
+                            x:Name="xBox"
+                            Margin="4 2 4 2"
+                            Grid.Row="0"
+                            Grid.Column="1"/>
+            <Label Content="Y "
+                   x:Name="yLabel"
+                   Grid.Row="0"
+                   Grid.Column="2"
+                   Padding="0"
+                   VerticalContentAlignment="Center"/>
             <tool:IntegerUpDown ValueChanged="OnYChanged"
-                                Value="{Binding Article.Y, ElementName=Self, Delay=700}"
-                               x:Name="yBox"
-                               Margin="0 2 2 2"
-                               Grid.Row="0"
-                               Grid.Column="3"/>
+                            Value="{Binding Article.Y, ElementName=Self, Delay=700}"
+                            x:Name="yBox"
+                            Margin="4 2 2 2"
+                            Grid.Row="0"
+                            Grid.Column="3"/>
         </Grid>
         <Label x:Name="spriteName"
-               Content="Sprite: "
-               FontWeight="Bold"
-               Grid.Row="1"
-               Grid.Column="0"/>
+            Content="Sprite "
+            FontWeight="Bold"
+            Grid.Row="2"
+            Grid.Column="0"/>
         <Button Click="OnSpriteNameChanged" 
                 Template="{StaticResource SpritePicker}"
                 Content="{Binding Article.Sprite, ElementName=Self}"
                 x:Name="spriteNameBox"
                 HorizontalAlignment="Stretch"
                 Margin="0 2 2 2"
-                Grid.Row="1"
+                Grid.Row="2"
                 Grid.Column="1"/>
         <!-- -->
         <Label x:Name="destroySprite"
-               Content="Destroy Sprite: "
+               Content="Destroy Sprite "
                FontWeight="Bold"
-               Grid.Row="2"
+               Grid.Row="3"
                Grid.Column="0"/>
         <Button Click="OnDestroySpriteChanged" 
                 Template="{StaticResource SpritePicker}"
@@ -138,30 +178,30 @@
                  x:Name="destroySpriteBox"
                  HorizontalAlignment="Stretch"
                  Margin="0 2 2 2"
-                 Grid.Row="2"
+                 Grid.Row="3"
                  Grid.Column="1"/>
         <!-- -->
-        <Label Content="Animation Speed: "
+        <Label Content="Animation Speed "
                    FontWeight="Bold"
                    x:Name="animationSpeed"
-                   Grid.Row="3"
+                   Grid.Row="4"
                    Grid.Column="0"/>
         <tool:SingleUpDown ValueChanged="OnAnimationSpeedChanged"
                             Value="{Binding Article.AnimationSpeed, ElementName=Self, Delay=700}"
                            x:Name="animSpeedBox"
                            Margin="0 2 2 2"
-                           Grid.Row="3"
+                           Grid.Row="4"
                            Grid.Column="1"/>
         <!-- -->
-        <Label Content="Collision: "
+        <Label Content="Collision "
                FontWeight="Bold"
                x:Name="collisionType"
-               Grid.Row="4"
+               Grid.Row="5"
                Grid.Column="0"/>
         <ComboBox x:Name="collisionTypeBox"
                   SelectedIndex="{Binding Article.Type, ElementName=Self}"
                   Margin="0 2 2 2"
-                  Grid.Row="4"
+                  Grid.Row="5"
                   Grid.Column="1"
                   SelectionChanged="OnCollisionTypeChanged">
             <ComboBoxItem Content="None"/>
@@ -170,19 +210,23 @@
         </ComboBox>
         <!-- -->
         <Label x:Name="staticPanel"
-                   Content="Static: "
+                   Content="Static "
                    FontWeight="Bold"
-                   Grid.Row="5"
+                   Grid.Row="6"
                    Grid.Column="0"/>
         <CheckBox x:Name="staticBox"
                   IsChecked="{Binding Article.Static, ElementName=Self}"
                   Checked="OnStaticChanged"
                   Unchecked="OnStaticChanged"
                   Margin="0 6 2 2"
-                  Grid.Row="5"
+                  Grid.Row="6"
                   Grid.Column="1"/>
-        <Grid Grid.ColumnSpan="2"
-              Grid.Row="6"
+        <Label x:Name="sizeBox"
+               Content="Size "
+               FontWeight="Bold"
+               Grid.Row="7"/>
+        <Grid Grid.Column="1"
+              Grid.Row="7"
               x:Name="resizeGrid">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
@@ -190,47 +234,61 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <Label Content="Width: "
-                    FontWeight="Bold"
+            <Label Content="W "
                     Grid.Row="0"
-                    Grid.Column="0"/>
+                    Grid.Column="0"
+                   Padding="0"
+                   VerticalContentAlignment="Center"/>
             <tool:IntegerUpDown ValueChanged="OnWidthChanged"
                                 Value="{Binding Article.TriggerWidth, ElementName=Self, Delay=700}"
                                x:Name="widthBox"
-                               Margin="0 2 2 2"
+                                Margin="0 2 4 2"
                                Grid.Row="0"
                                Grid.Column="1"/>
-            <Label Content="Height: "
-                    FontWeight="Bold"
+            <Label Content="H "
                     Grid.Row="0"
-                    Grid.Column="2"/>
+                    Grid.Column="2"
+                   Padding="0"
+                   VerticalContentAlignment="Center"/>
             <tool:IntegerUpDown ValueChanged="OnHeightChanged"
                                 Value="{Binding Article.TriggerHeight, ElementName=Self, Delay=700}"
                                x:Name="heightBox"
-                               Margin="0 2 2 2"
+                                Margin="2 2 2 2"
                                Grid.Row="0"
                                Grid.Column="3"/>
         </Grid>
         <Label x:Name="targetSpeeds"
-               Content="Target Speeds: "
+               Content="Target Speeds "
                FontWeight="Bold"
-               Grid.Row="7"
+               Grid.Row="8"
                Grid.Column="0"/>
         <ItemsControl ItemsSource="{Binding Article.TargetSpeedList, ElementName=Self}"
                       ItemTemplate="{StaticResource TargetSpeedPicker}"
                       x:Name="targetSpeedList"
                       Margin="0 2 2 2"
-                      Grid.Row="7"
+                      Grid.Row="8"
                       Grid.Column="1"/>
-        <Label Content="Depth: "
+        <Label Content="Depth "
                    FontWeight="Bold"
                    x:Name="depth"
-                   Grid.Row="8"
+                   Grid.Row="9"
                    Grid.Column="0"/>
         <tool:IntegerUpDown Value="{Binding Article.Depth, ElementName=Self, Delay=700}"
                            x:Name="depthBox"
                            Margin="0 2 2 2"
-                           Grid.Row="8"
+                           Grid.Row="9"
                            Grid.Column="1"/>
+        <Button Grid.Row="10"
+                Grid.Column="1"
+                Margin="4 6 2 2"
+                Padding="8 4 8 4"
+                HorizontalAlignment="Right"
+                Content="Edit Tilemap"
+                Click="EditTilemapClicked"
+                x:Name="editTilemapButton"/>
+        <local:TilesetEditor Grid.ColumnSpan="2"
+                             Grid.Row="11"
+                             Margin="0 4 0 4"
+                             x:Name="tilesetEditor"/>
     </Grid>
 </ScrollViewer>

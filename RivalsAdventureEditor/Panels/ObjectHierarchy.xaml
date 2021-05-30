@@ -34,10 +34,27 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <Style TargetType="TextBox" x:Key="HighlightTextBox">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="IsInactiveSelectionHighlightEnabled" Value="False"/>
+            <Setter Property="IsHitTestVisible" Value="True"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsReadOnly, RelativeSource={RelativeSource Self}}" Value="False">
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="IsInactiveSelectionHighlightEnabled" Value="True"/>
+                    <Setter Property="IsHitTestVisible" Value="True"/>
+                    <Setter Property="FontWeight" Value="Normal"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <DataTemplate x:Key="Obj" DataType="{x:Type data:Article}">
-            <TextBox Style="{StaticResource RenameTextBox}" 
-                    Text="{Binding Name}"
-                    IsReadOnly="{Binding Renaming, Converter={StaticResource BoolConverter}}"/>
+            <TextBox Style="{StaticResource HighlightTextBox}" 
+                     Text="{Binding Name}"
+                     IsReadOnly="{Binding Renaming, Converter={StaticResource BoolConverter}}"
+                     Loaded="BindArticleToSelected"
+                     MouseDoubleClick="SelectArticle"
+                     Cursor="Arrow"
+                     IsInactiveSelectionHighlightEnabled="False"/>
         </DataTemplate>
         <DataTemplate x:Key="Room" DataType="{x:Type data:Room}">
             <StackPanel>

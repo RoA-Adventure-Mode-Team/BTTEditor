@@ -100,8 +100,8 @@ namespace RivalsAdventureEditor.Data
     public static class ROAAM_CONST
     {
         public const int GRID_SIZE = 16;
-        public const int CELL_WIDTH = 163 * GRID_SIZE;
-        public const int CELL_HEIGHT = 85 * GRID_SIZE;
+        public const int CELL_WIDTH = 165 * GRID_SIZE;
+        public const int CELL_HEIGHT = 87 * GRID_SIZE;
         public static readonly Point[] ZONE_POINTS = new [] { new Point(0, 0), new Point(0.5, 0), new Point(1, 0), new Point(0, 0.5), new Point(1, 0.5), new Point(0, 1), new Point(0.5, 1), new Point(1, 1) };
     }
 }

@@ -16,6 +16,7 @@ namespace RivalsAdventureEditor.Commands
         public static CommandBase ExportRoomData = new ExportRoomDataCommand();
         public static CommandBase GenerateRoomData = new GenerateRoomDataCommand();
         public static CommandBase CreateArticle = new CreateArticleCommand();
+        public static CommandBase DeleteCommand = new EditorDeleteCommand();
 
         private static FieldInfo [] fields;
 

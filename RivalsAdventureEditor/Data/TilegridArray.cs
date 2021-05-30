@@ -19,13 +19,13 @@ namespace RivalsAdventureEditor.Data
         public readonly DictionaryProxy Chunks;
         private readonly Dictionary<Tuple<int, int>, IntPtr> chunks = new Dictionary<Tuple<int, int>, IntPtr>();
         [JsonProperty]
-        private int MinX = 0;
+        public int MinX { get; private set; } = 0;
         [JsonProperty]
-        private int MaxX = 0;
+        public int MaxX { get; private set; } = 0;
         [JsonProperty]
-        private int MinY = 0;
+        public int MinY { get; private set; } = 0;
         [JsonProperty]
-        private int MaxY = 0;
+        public int MaxY { get; private set; } = 0;
 
         public TilegridArray()
         {
@@ -44,7 +44,7 @@ namespace RivalsAdventureEditor.Data
                 MinY = Math.Min(MinY, chunk.Item2);
                 MaxY = Math.Max(MaxY, chunk.Item2);
             }
-            ((int*)chunks[chunk].ToPointer())[chunk.Item1 + chunk.Item2 * ChunkSizeY] = value;
+            ((int*)chunks[chunk].ToPointer())[localPos.Item1 + localPos.Item2 * ChunkSizeX] = value;
         }
 
         public unsafe int GetTileAt(Tuple<int, int> index)
@@ -53,12 +53,12 @@ namespace RivalsAdventureEditor.Data
             if (!chunks.ContainsKey(chunk))
                 return 0;
             else
-                return ((int*)chunks[chunk].ToPointer())[chunk.Item1 + chunk.Item2 * ChunkSizeY];
+                return ((int*)chunks[chunk].ToPointer())[localPos.Item1 + localPos.Item2 * ChunkSizeX];
         }
 
         public void GetChunkFromIndex(Tuple<int, int> index, out Tuple<int, int> chunk)
         {
-            chunk = new Tuple<int, int>(index.Item1 / ChunkSizeX, index.Item2 / ChunkSizeY);
+            chunk = new Tuple<int, int>((int)MathF.Floor(index.Item1 / (float)ChunkSizeX), (int)MathF.Floor(index.Item2 / (float)ChunkSizeY));
         }
 
         public void GetChunkFromIndex(Tuple<int, int> index, out Tuple<int, int> chunk, out Tuple<int, int> localPos)
@@ -67,9 +67,11 @@ namespace RivalsAdventureEditor.Data
             localPos = new Tuple<int, int>(index.Item1 - chunk.Item1 * ChunkSizeX, index.Item2 - chunk.Item2 * ChunkSizeY);
         }
 
-        private IntPtr NewChunk()
+        private unsafe IntPtr NewChunk()
         {
-            return Marshal.AllocHGlobal(ChunkSizeX*ChunkSizeY*sizeof(int));
+            IntPtr array = Marshal.AllocHGlobal(ChunkSizeX * ChunkSizeY * sizeof(int));
+            RtlZeroMemory(array, ChunkSizeX * ChunkSizeY * sizeof(int));
+            return array;
         }
 
         public IEnumerator<KeyValuePair<Tuple<int, int>, IntPtr>> GetEnumerator()
@@ -81,6 +83,9 @@ namespace RivalsAdventureEditor.Data
         {
             return chunks.GetEnumerator();
         }
+
+        [DllImport("kernel32.dll")]
+        static extern void RtlZeroMemory(IntPtr dst, uint length);
     }
 
     public class DictionaryProxy : IDictionary<string, int[,]>
@@ -101,17 +106,22 @@ namespace RivalsAdventureEditor.Data
                 for (int y = 0; y < TilegridArray.ChunkSizeY; y++)
                 {
                     for (int x = 0; x < TilegridArray.ChunkSizeX; x++)
-                        chunk[y, x] = ((int*)chunkPtr.ToPointer())[x + y * TilegridArray.ChunkSizeY];
+                        chunk[y, x] = ((int*)chunkPtr.ToPointer())[x + y * TilegridArray.ChunkSizeX];
                 }
                 return chunk;
             }
             set
             {
+                var chunk = ToTuple(key);
+                if (!chunks.ContainsKey(chunk))
+                {
+                    chunks.Add(chunk, NewChunk());
+                }
                 IntPtr chunkPtr = chunks[ToTuple(key)];
                 for (int y = 0; y < TilegridArray.ChunkSizeY; y++)
                 {
                     for (int x = 0; x < TilegridArray.ChunkSizeX; x++)
-                        ((int*)chunkPtr.ToPointer())[x + y * TilegridArray.ChunkSizeY] = value[y, x];
+                        ((int*)chunkPtr.ToPointer())[x + y * TilegridArray.ChunkSizeX] = value[y, x];
                 }
             }
         }

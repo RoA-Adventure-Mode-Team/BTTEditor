@@ -35,8 +35,8 @@ namespace RivalsAdventureEditor.Operations
             if(Obj != null)
             {
                 Obj.Path.Insert(SelectedIndex, Pos);
-                RoomEditor.Instance.SelectedPath = SelectedIndex;
                 RoomEditor.Instance.SelectedObj = Obj;
+                RoomEditor.Instance.SelectedPath = SelectedIndex;
             }
         }
     }

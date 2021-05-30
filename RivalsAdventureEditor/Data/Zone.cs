@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace RivalsAdventureEditor.Data
 {
@@ -30,6 +31,12 @@ namespace RivalsAdventureEditor.Data
         public Zone()
         {
             Sprite = "roaam_zone";
+        }
+
+        public override bool ContainsPoint(Point point)
+        {
+            var box = new Rect(RealPoint, new Size(TriggerWidth, TriggerHeight));
+            return box.Contains(point);
         }
     }
 }

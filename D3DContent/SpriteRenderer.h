@@ -5,17 +5,17 @@
 #include <d2d1_2.h>
 #include <wincodec.h>
 
-struct TextureData
-{
-  ID2D1Bitmap* tex;
-  int frames;
-  int width;
-  int height;
-};
-
 struct Article;
 struct Line;
 struct Tilemap;
+
+struct TextureData
+{
+  int frames;
+  int height;
+  int width;
+  ID2D1Bitmap* tex;
+};
 
 class SpriteRenderer
 {
@@ -28,8 +28,12 @@ public:
   int GetWidth() const { return m_width; }
   int GetHeight() const { return m_height; }
   HRESULT Resize(int width, int height);
+  ID2D1DeviceContext* GetDeviceContext() { return m_deviceContext; }
+  void PrepareForRender();
 
-  HRESULT RegisterTexture(const LPSTR key, const LPWSTR fname, int frames, TextureData** texture);
+  HRESULT CreateBrush(int color, ID2D1SolidColorBrush** brush);
+  HRESULT RegisterTexture(LPSTR key, LPWSTR fname, int frames, TextureData** texture);
+
 private:
   void RenderArticle(Article* article);
   void RenderLine(Line* line);
@@ -40,7 +44,6 @@ private:
   UINT m_height;
 
   ID2D1Factory2*            m_factory;
-  IWICImagingFactory2*      m_imageFactory;
   ID2D1Effect*              m_cropEffect;
   ID2D1Effect*              m_colorEffect;
   ID2D1Device*              m_device;
@@ -48,9 +51,11 @@ private:
   IDXGISwapChain*           m_swapChain;
   ID2D1Bitmap1*             m_targetBitmap;
   ID3D11DeviceContext*      m_3dDeviceContext;
+  ID2D1StrokeStyle*         m_dashedStroke;
+
+  IWICImagingFactory2* m_imageFactory;
+  std::map<std::string, TextureData*> m_textureAtlas;
 
   D2D1_MATRIX_3X2_F       m_cameraTrans;
-
-  std::map<std::string, TextureData*> m_textureAtlas;
   GUID m_guid;
 };
